@@ -1,0 +1,18 @@
+name = "v4ex-coin"
+# type = "javascript" is required to use the `[build]` section
+type = "javascript"
+account_id = ""
+workers_dev = true
+route = ""
+zone_id = ""
+
+
+[build.upload]
+dir="src"
+# The "modules" upload format is required for all projects that export a Durable Object class.
+format = "modules"
+main = "./index.mjs"
+
+
+[durable_objects]
+bindings = [{name = "MINER", class_name = "Miner"}]

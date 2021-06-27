@@ -1,0 +1,18 @@
+{
+  "private": true,
+  "name": "v4ex-coin",
+  "version": "1.0.0",
+  "description": "V4EX Coin service.",
+  "module": "./src/index.mjs",
+  "scripts": {
+    "format": "prettier --write '**/*.{js,css,json,md}'"
+  },
+  "author": "V4EX Inc. <v4ex-coin@v4ex.com> (https://v4ex.com/)",
+  "contributors": [
+    "Xuwei Li <v4ex-coin@xuwei.li> (https://xuwei.li/)"
+  ],
+  "license": "GPL-3.0",
+  "devDependencies": {
+    "prettier": "^1.19.1"
+  }
+}
