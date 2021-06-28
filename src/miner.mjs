@@ -1,10 +1,19 @@
 import AuthService from './auth.mjs'
+import MiningTask from './mining-task.mjs'
 
 // Cloudflare Workers Durable Object
 // Runtime API https://developers.cloudflare.com/workers/runtime-apis/durable-objects
 export default class Miner {
+  // Predefined stored value keys
+  static MINING_TASK = 'mining-task'
+
+  // ==========================================================================
+  // 
+  
+  //
   constructor(state, env){
     this.state = state // Durable Object state
+    this.Storage = this.state.storage // Durable Object Storage
     this.env = env // Durable Object env
     //
     this.sessions = [] // Web socket sessions
@@ -12,29 +21,38 @@ export default class Miner {
     this.Url = {} // Web request URL
     //
     this.sub = 'V4EX' // User sub
+    /**
+     * @type {AuthService}
+     */
     this.Auth = {} // Auth service
     this.pass = false // message passage status
     //
     this.miningTasks = [] // List of mining tasks
-    this.miningTask = {} // The current mining task
+    /**
+     * @type {MiningTask}
+     */
+    this.miningTask // The current mining task
   }
 
   // Before calling this, this.request is ready.
   async initialize() {
-    //
+    // Initialize Auth service and requirements
     this.Url = new URL(this.request.url)
     this.sub = this.Url.searchParams.get('sub') ?? this.sub
     this.Auth = new AuthService(this.sub)
-    //
-    let stored = await this.state.storage.get('value');
-    this.value = stored || '';
+
+    // Try to initialize the mining task
+    let storedMiningTask = await this.Storage.get(Miner.MINING_TASK)
+    this.miningTask = new MiningTask(storedMiningTask ?? { sub: this.sub }, this.Storage)
   }
 
   // Get userinfo from authenticated Auth0 user
   async auth(accessToken) {
     await this.Auth.auth(accessToken)
+
     // Equal pass value AuthServie authentication status
     this.pass = this.Auth.isAuthenticated
+
     // Successful authenticated
     if (this.pass) {
       // Check Integrity of Durable Object
@@ -43,6 +61,9 @@ export default class Miner {
       }
     }
   }
+
+  // ==========================================================================
+  // 
 
   clearSession(session, webSocket) {
     this.sessions = this.sessions.filter((_session) => _session !== session)
@@ -56,66 +77,142 @@ export default class Miner {
   }
 
   async handleSession(webSocket) {
+    // New web socket
     webSocket.accept()
-
     let session = { webSocket }
     this.sessions.push(session)
 
+    // Handle 'message' event
     webSocket.addEventListener('message', async ({ data }) => {
+      // Prepare response
+      const response = {
+        server: 'V4EX',
+        status: 200,
+        statusText: 'OK',
+        // reason: '',
+        // description: '',
+        payload: {}
+      }
+
       try {
         // Extract data from client message
-        const { accessToken, action, playload } = JSON.parse(data)
+        const { accessToken, action, payload } = JSON.parse(data)
         // DEBUG
         // console.log("accessToken: ", accessToken)
         // console.log("action: ", action)
-        // console.log("playload: ", playload)
+        // console.log("payload: ", payload)
 
         // Authentication
         await this.auth(accessToken)
 
-        // Actions route
-        switch (action) {
-          case 'INITIALIZE': {
-            // Miner can only initialize a mining task if there is none in proceeding
-
+        
+        // Passed message
+        if (!this.pass) {
+          // DEBUG
+          // webSocket.send('Unauthorized')
+          // DEBUG
+          // console.log("Durable Object id: ", this.state.id.toString())
+          // if ('sub' in this.Auth.userInfo) {
+          //   console.log("Durable Object id from user sub: ", this.env.MINER.idFromName(this.Auth.userInfo.sub).toString())
+          // }
+          if (response.status < 300) {
+            response.status = 401
+            response.statusText = 'Unauthorized'
           }
-          case 'PROCEED': {
-            //
+        } else {
+          // Actions route
+          switch (action) {
+            case 'INITIALIZE': {
+              // Before interexchanging messages, this.miningTask value has been initialized from DO storage or by code
+              // Miner can only initialize a mining task if there is none in proceeding
+              if (!this.miningTask.isInitialized()) {
+                this.miningTask.initialize()
+                await this.miningTask.save()
 
+                response.status = 201
+                response.statusText = 'Created'
+              }
+              else {
+                // Mining task has been initialized
+                response.status = 304
+                response.statusText = "Not Modified"
+              }
+              // DEBUG
+              // console.log(`this.miningTask ${typeof this.miningTask} is: `, this.miningTask)
+
+              // Add data to payload
+              response.payload.miningTask = this.miningTask
+
+              break
+            }
+            //
+            case 'VIEW': {
+              response.payload.miningTask = await this.Storage.get(Miner.MINING_TASK)
+
+              break
+            }
+            case 'SUBMIT': {
+              if (!this.miningTask.isSubmitted()) {
+                this.miningTask.submit(payload.work)
+                await this.miningTask.save()
+
+                response.status = 202
+                response.statusText = "Accepted"
+              } else { // Already submitted
+                response.status = 304
+                response.statusText = "Not Modified"
+              }
+
+              response.payload.miningTask = this.miningTask
+
+              break
+            }
+            // DEBUG
+            // case 'SAVE': {
+            //   await this.miningTask.save()
+            //   response.payload.miningTask = this.miningTask
+            //   // DEBUG
+            //   console.log("Mining task in storage: ", await this.Storage.get(Miner.MINING_TASK))
+
+            //   break
+            // }
+            // DEBUG
+            case 'DESTROY': { // SHOULD only allow in Admin
+              await this.miningTask.destroy()
+              this.miningTask = new MiningTask({ sub: this.sub }, this.Storage)
+
+              break
+            }
+            default: {
+              // DEBUG
+              // webSocket.send('Unknown API request.')
+              // LOG
+              console.log(this.sub, " is trying unknown " + action.toString())
+
+              response.status = 400
+              response.statusText = "Bad Request"
+            }
           }
         }
-
       } catch (error) {
         // Error
-        console.log("Error caught processing income message:", error.message);
-        console.log(error.stack);
+        console.error("Error caught processing income message:", error.message);
+        console.error(error.stack);
 
-        webSocket.send("Error.")
-        return
-      }
-
-      // Passed message
-      if (!this.pass) {
-        webSocket.send('Unauthorized')
         // DEBUG
-        // console.log("Durable Object id: ", this.state.id.toString())
-        // if ('sub' in this.Auth.userInfo) {
-        //   console.log("Durable Object id from user sub: ", this.env.MINER.idFromName(this.Auth.userInfo.sub).toString())
-        // }
+        // webSocket.send("Error.")
 
-        return
+        if (response.status <= 500) {
+          response.status = 500
+          response.statusText = "Internal Server Error"
+        }
+      } finally {
+        // DEBUG
+        // webSocket.send("Cloudflare Workers")
+        // webSocket.send(JSON.stringify(this.Auth.userInfo))
+
+        webSocket.send(JSON.stringify(response))
       }
-
-      let response = {
-        server: "Cloudflare Workers",
-        data: data
-      }
-
-      webSocket.send("Cloudflare Workers")
-      // DEBUG
-      webSocket.send(JSON.stringify(this.Auth.userInfo))
-
-
     })
 
     webSocket.addEventListener('close', () => {
@@ -126,6 +223,9 @@ export default class Miner {
       this.clearSession(session, webSocket)
     })
   }
+
+  // ==========================================================================
+  // 
 
   async fetch(request) {
     //
