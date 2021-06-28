@@ -1,55 +1,52 @@
+import AuthService from './auth.mjs'
+
 // Cloudflare Workers Durable Object
 // Runtime API https://developers.cloudflare.com/workers/runtime-apis/durable-objects
 export default class Miner {
   constructor(state, env){
-    this.state = state
-    this.env = env
-    this.sessions = []
-    this.request = {}
-    this.isAuthenticated = false
-    this.auth0UserInfo = "https://v4ex.us.auth0.com/userinfo"
-    this.userAccessToken = ""
-    this.userInfo = {}
+    this.state = state // Durable Object state
+    this.env = env // Durable Object env
+    //
+    this.sessions = [] // Web socket sessions
+    this.request = {} // Web request
+    this.Url = {} // Web request URL
+    //
+    this.sub = 'V4EX' // User sub
+    this.Auth = {} // Auth service
+    this.pass = false // message passage status
+    //
+    this.miningTasks = [] // List of mining tasks
+    this.miningTask = {} // The current mining task
   }
 
+  // Before calling this, this.request is ready.
   async initialize() {
     //
-    let stored = await this.state.storage.get("value");
-    this.value = stored || "";
+    this.Url = new URL(this.request.url)
+    this.sub = this.Url.searchParams.get('sub') ?? this.sub
+    this.Auth = new AuthService(this.sub)
+    //
+    let stored = await this.state.storage.get('value');
+    this.value = stored || '';
   }
 
   // Get userinfo from authenticated Auth0 user
   async auth(accessToken) {
-    if (!this.isAuthenticated) {
-      this.userAccessToken = accessToken
-    
-      let auth0Response = await fetch(this.auth0UserInfo, {
-        method: 'GET',
-        headers: {
-          authorization: "bearer " + accessToken
-        }
-      })
-
-      if (auth0Response.status == 200) {
-        this.isAuthenticated = true
-        this.userInfo = await auth0Response.json()
-        // Check Durable Object id
-        if (this.state.id.toString() != this.env.MINER.idFromName(this.userInfo.sub).toString()) {
-          this.isAuthenticated = false
-        }
-      }
-    } else {
-      // Changed accessToken
-      if (accessToken != this.userAccessToken) {
-        this.isAuthenticated = false
-        await this.auth(accessToken)
+    await this.Auth.auth(accessToken)
+    // Equal pass value AuthServie authentication status
+    this.pass = this.Auth.isAuthenticated
+    // Successful authenticated
+    if (this.pass) {
+      // Check Integrity of Durable Object
+      if (this.state.id.toString() != this.env.MINER.idFromName(this.Auth.userInfo.sub).toString()) {
+        this.pass = false
       }
     }
   }
 
   clearSession(session, webSocket) {
     this.sessions = this.sessions.filter((_session) => _session !== session)
-    webSocket.close(1011, 'WebSocket closed.')
+    webSocket.close(1011, "WebSocket closed.")
   }
 
   broadcast(message) {
@@ -64,35 +61,59 @@ export default class Miner {
     let session = { webSocket }
     this.sessions.push(session)
 
-    webSocket.addEventListener("message", async ({ data }) => {
+    webSocket.addEventListener('message', async ({ data }) => {
       try {
-        const { accessToken } = JSON.parse(data)
-        // let accessToken = JSON.parse(data).accessToken
+        // Extract data from client message
+        const { accessToken, action, playload } = JSON.parse(data)
+        // DEBUG
+        // console.log("accessToken: ", accessToken)
+        // console.log("action: ", action)
+        // console.log("playload: ", playload)
 
+        // Authentication
         await this.auth(accessToken)
 
-        if (!this.isAuthenticated) {
-          webSocket.send("Unauthorized")
-          webSocket.send(this.state.id.toString())
-          if ('sub' in this.userInfo) {
-            webSocket.send(this.env.MINER.idFromName(this.userInfo.sub).toString())
+        // Actions route
+        switch (action) {
+          case 'INITIALIZE': {
+            // Miner can only initialize a mining task if there is none in proceeding
+
           }
+          case 'PROCEED': {
+            //
 
-          return
+          }
         }
 
-        let response = {
-          server: "Cloudflare Workers",
-          data: data
-        }
-  
-        webSocket.send("Cloudflare Workers")
-        webSocket.send(JSON.stringify(this.userInfo))
+      } catch (error) {
+        // Error
+        console.log("Error caught processing income message:", error.message);
+        console.log(error.stack);
 
-      } catch (err) {
-        webSocket.send("Unauthorized")
+        webSocket.send("Error.")
         return
       }
+
+      // Passed message
+      if (!this.pass) {
+        webSocket.send('Unauthorized')
+        // DEBUG
+        // console.log("Durable Object id: ", this.state.id.toString())
+        // if ('sub' in this.Auth.userInfo) {
+        //   console.log("Durable Object id from user sub: ", this.env.MINER.idFromName(this.Auth.userInfo.sub).toString())
+        // }
+
+        return
+      }
+
+      let response = {
+        server: "Cloudflare Workers",
+        data: data
+      }
+
+      webSocket.send("Cloudflare Workers")
+      // DEBUG
+      webSocket.send(JSON.stringify(this.Auth.userInfo))
 
 
     })
@@ -128,7 +149,7 @@ export default class Miner {
     let url = new URL(request.url)
 
     switch (url.pathname) {
-      case '/ws': {
+      case '/mining': {
         if (request.headers.get('Upgrade') === 'websocket') {
           const [client, server] = Object.values(new WebSocketPair())
 
@@ -137,15 +158,15 @@ export default class Miner {
           return new Response(null, { status: 101, webSocket: client })
         } else {
 
-          return new Response('WebSocket expected', { status: 400 })
+          return new Response("WebSocket expected", { status: 400 })
         }
       }
 
-      case '/ws/sessions': {
+      case '/mining/sessions': {
         return new Response(JSON.stringify(this.sessions), { status: 200 })
       }
 
-      case '/ws/request': {
+      case '/mining/request': {
         return new Response(JSON.stringify(request), { status: 200 })
       }
 

@@ -1,15 +1,17 @@
+// Authentication module
 export default class Auth {
   constructor(sub) {
     this.sub = sub
     this.isAuthenticated = false
     this.auth0UserInfo = "https://v4ex.us.auth0.com/userinfo"
-    this.userAccessToken = ""
+    this.accessToken = ""
     this.userInfo = {}
   }
 
   async auth(accessToken) {
+    // Not yet authenticated
     if (!this.isAuthenticated) {
-      this.userAccessToken = accessToken
+      this.accessToken = accessToken
     
       // Connect to Auth0 API to get userinfo
       let auth0Response = await fetch(this.auth0UserInfo, {
@@ -27,8 +29,9 @@ export default class Auth {
       // Unauthorized
 
     } else {
+      // Already authenticated
       // Changed accessToken
-      if (accessToken != this.userAccessToken) {
+      if (accessToken != this.accessToken) {
         this.isAuthenticated = false
         await this.auth(accessToken)
       }

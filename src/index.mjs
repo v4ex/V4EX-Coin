@@ -1,4 +1,4 @@
-import Auth from './auth.mjs'
+import AuthService from './auth.mjs'
 import Miner from './miner.mjs'
 
 export {
@@ -10,16 +10,17 @@ export default {
 
     // DEBUG
     // console.log('Hello from Cloudflare Workers')
+
+    const Url = new URL(request.url)
     
-    //
-    let sub = new URL(request.url).searchParams.get('sub') ?? 'V4EX'
+    // ?sub=${sub}
+    let sub = Url.searchParams.get('sub') ?? 'V4EX'
 
     // Initialize Auth
-    const auth = new Auth(sub)
+    const Auth = new AuthService(sub)
 
     // Handle root request
-    let url = new URL(request.url)
-    if (url.pathname == '/') {
+    if (Url.pathname == '/') {
       // Two cases
       // 1. accessToken sent from headers
       // authorization : bearer ${accessToken}
@@ -28,9 +29,9 @@ export default {
         accessToken = request.headers.get('authorization').split(' ')[1]
       }
       if (accessToken) {
-        await auth.auth(accessToken)
-        if (auth.isAuthenticated) {
-          return new Response(JSON.stringify(auth.userInfo), { status: 200 });
+        await Auth.auth(accessToken)
+        if (Auth.isAuthenticated) {
+          return new Response(JSON.stringify(Auth.userInfo), { status: 200 });
         }
       }
       // 2. accessToken not provided
