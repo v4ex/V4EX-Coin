@@ -1,5 +1,5 @@
-import AuthService from './auth.mjs'
-import Miner from './miner.mjs'
+import AuthService from './auth.js'
+import Miner from './miner.js'
 
 export {
   Miner

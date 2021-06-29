@@ -1,4 +1,5 @@
-/dist
+/build
+/dev
 /node_modules
 
 wrangler.toml

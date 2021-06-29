@@ -1,4 +1,4 @@
-import Miner from './miner.mjs'
+import Miner from './miner.js'
 
 // Value type
 // Stored in Miner Durable Object
@@ -82,6 +82,9 @@ export default class MiningTask {
     this.timestampInitialized = Date.now()
   }
 
+  // USER_INPUT
+  // TODO
+  // Filter data
   submit(work) {
     this.work = work
     this.timestampSubmitted = Date.now()
