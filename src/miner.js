@@ -2,6 +2,8 @@ import AuthService from './auth.js'
 import MiningTask from './mining-task.js'
 
 import Status from 'http-status'
+import { getReasonPhrase } from 'http-status-codes';
+Status.getReasonPhrase = getReasonPhrase
 
 // Cloudflare Workers Durable Object
 // Runtime API https://developers.cloudflare.com/workers/runtime-apis/durable-objects
@@ -91,6 +93,7 @@ export default class Miner {
         server: 'V4EX',
         status: 200,
         statusName: Status['200_NAME'],
+        statusReason: Status.getReasonPhrase(200),
         statusMessage: Status['200_MESSAGE'],
         // reason: '',
         // description: '',
@@ -99,6 +102,7 @@ export default class Miner {
       response.setStatus = status => {
         response.status = status
         response.statusName = Status[`${status}_NAME`]
+        response.statusReason = Status.getReasonPhrase(status),
         response.statusMessage = Status[`${status}_MESSAGE`]
       }
 

@@ -3,7 +3,8 @@
   "name": "v4ex-coin",
   "version": "1.0.0",
   "description": "V4EX Coin service.",
-  "module": "./src/index.js",
+  "type": "module",
+  "main": "./src/index.js",
   "scripts": {
     "build": "webpack --config webpack.config.js",
     "format": "prettier --write '**/*.{js,css,json,md}'"
@@ -19,6 +20,7 @@
     "webpack-cli": "^4.7.2"
   },
   "dependencies": {
-    "http-status": "^1.5.0"
+    "http-status": "^1.5.0",
+    "http-status-codes": "^2.1.4"
   }
 }

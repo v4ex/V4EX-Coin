@@ -7,11 +7,13 @@ route = ""
 zone_id = ""
 
 
+[build]
+command = "npm install && npm run build"
 [build.upload]
-dir="src"
 # The "modules" upload format is required for all projects that export a Durable Object class.
+dir="build"
 format = "modules"
-main = "./index.mjs"
+main = "./worker.mjs"
 
 
 [durable_objects]
