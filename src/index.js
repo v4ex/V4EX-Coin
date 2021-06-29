@@ -1,6 +1,14 @@
 import AuthService from './auth.js'
 import Miner from './miner.js'
 
+import miningTaskSchema from '../schema/mining-task.json'
+import miningTaskWorkSchema from '../schema/mining-task-work.json'
+
+const Schemas = {
+  "mining-task": miningTaskSchema,
+  "mining-task-work": miningTaskWorkSchema
+}
+
 export {
   Miner
 }
@@ -19,6 +27,7 @@ export default {
     // Initialize Auth
     const Auth = new AuthService(sub)
 
+    // ========================================================================
     // Handle root request
     if (Url.pathname == '/') {
       // Two cases
@@ -38,6 +47,16 @@ export default {
       return new Response(sub, { status: 200 });
     }
 
+    // ========================================================================
+    // Handle Schema request
+    if (Url.pathname.startsWith('/schema/')) {
+      const schema = Url.pathname.split('/')[2]
+      if (schema) {
+        return new Response(JSON.stringify(Schemas[schema]), { status: 200 })
+      }
+    }
+
+    // ========================================================================
     // Durable Object Websocket
     let id = env.MINER.idFromName(sub)
 

@@ -1,0 +1,38 @@
+{
+  "$id": "mining-task-work",
+  "type": "object",
+  "title": "Mining Task Work",
+  "description": "Schema for submitted mining task work.",
+  "discriminator": { "propertyName": "version" },
+  "oneOf": [
+    {
+      "title": "v1",
+      "properties": {
+        "version": {
+          "const": "v1",
+          "description": "Version of the Mining Task Work schema."
+        },
+        "server": {
+          "const": "V4EX",
+          "description": "Server or hoster for this work."
+        },
+        "job": {
+          "const": "Twitter tweet",
+          "description": "Job type."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL for the worked job."
+        }
+      },
+      "required": [
+        "version",
+        "server",
+        "job",
+        "url"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "$id": "mining-task",
+  "type": "object",
+  "title": "Mining Task",
+  "description": "Schema for mining task information.",
+  "discriminator": { "propertyName": "version" },
+  "oneOf": [
+    {
+      "title": "v1",
+      "properties": {
+        "version": {
+          "const": "v1",
+          "description": "Version of the Mining Task schema."
+        },
+        "sub": {
+          "type": "string",
+          "description": "Subject identification."
+        },
+        "timestampInitialized": {
+          "type": "number",
+          "description": "Timestamp of mining task got initialized."
+        },
+        "timestampCommitted": {
+          "type": "number",
+          "description": "Timestamp of mining task actual work got committed."
+        },
+        "timestampSubmitted": {
+          "type": "number",
+          "description": "Timestamp of mining task work details got submitted."
+        },
+        "timestampProceeded": {
+          "type": "number",
+          "description": "Timestamp of mining task got proceeded."
+        },
+        "timestampConfirmed": {
+          "type": "number",
+          "description": "Timestamp of mining task finished and got confirmed."
+        },
+        "miningTaskWork": {
+          "$ref": "mining-task-work",
+          "description": "Mining task work object."
+        }
+      },
+      "required": [
+        "version"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}
