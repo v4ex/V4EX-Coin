@@ -186,7 +186,8 @@ export default class Miner {
               break
             }
             case 'RESUBMIT': {
-              if (this.miningTask.isSubmitted()) {
+              // Only allow resubmit if not proceeded
+              if (!this.miningTask.isProceeded() && this.miningTask.isSubmitted()) {
                 let submitted = await this.miningTask.submit(payload.work)                
                 if (submitted) {
                   // 200 'OK'
