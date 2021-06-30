@@ -1,4 +1,5 @@
-/build
+/build/*
+!/build/.gitkeep
 /dev
 /node_modules
 
