@@ -1,5 +1,5 @@
 {
-  "$id": "mining-task-work",
+  "$id": "https://schema.v4ex.com/mining-task-work",
   "type": "object",
   "title": "Mining Task Work",
   "description": "Schema for submitted mining task work.",

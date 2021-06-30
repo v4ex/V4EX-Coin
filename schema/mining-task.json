@@ -1,5 +1,5 @@
 {
-  "$id": "mining-task",
+  "$id": "https://schema.v4ex.com/mining-task",
   "type": "object",
   "title": "Mining Task",
   "description": "Schema for mining task information.",
@@ -37,7 +37,7 @@
           "description": "Timestamp of mining task finished and got confirmed."
         },
         "miningTaskWork": {
-          "$ref": "mining-task-work",
+          "$ref": "https://schema.v4ex.com/mining-task-work",
           "description": "Mining task work object."
         }
       },
