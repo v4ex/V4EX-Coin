@@ -128,8 +128,7 @@ export default class Miner {
           //   console.log("Durable Object id from user sub: ", this.env.MINER.idFromName(this.Auth.userInfo.sub).toString())
           // }
           if (response.status < 300) {
-            // response.status = 401
-            // response.statusName = 'Unauthorized'
+            // 401 'Unauthorized'
             response.setStatus(401)
           }
         } else {
@@ -142,15 +141,12 @@ export default class Miner {
                 this.miningTask.initialize()
                 await this.miningTask.save()
 
-                // response.status = 201
-                // response.statusName = 'Created'
+                // 201 'Created'
                 response.setStatus(201)
               }
               else {
                 // Mining task has been initialized
-                // response.status = 304
-                // response.statusName = "Not Modified"
-                // response.statusMessage = ""
+                // 304 "Not Modified"
                 response.setStatus(304)
               }
               // DEBUG
@@ -169,20 +165,45 @@ export default class Miner {
             }
             case 'SUBMIT': {
               if (!this.miningTask.isSubmitted()) {
-                this.miningTask.submit(payload.work)
-                await this.miningTask.save()
-
-                // response.status = 202
-                // response.statusName = "Accepted"
-                response.setStatus(202)
-
+                let submitted = await this.miningTask.submit(payload.work)                
+                if (submitted) {
+                  // 201 'Created'
+                  response.setStatus(201)
+                } else {
+                  // 400 "Bad request"
+                  response.setStatus(400)
+                }
               } else { // Already submitted
-                // response.status = 304
-                // response.statusName = "Not Modified"
+                // 304 "Not Modified"
                 response.setStatus(304)
               }
 
-              response.payload.miningTask = this.miningTask
+              // Attach payload
+              if (response.status < 400) {
+                response.payload.miningTask = this.miningTask
+              }
+
+              break
+            }
+            case 'RESUBMIT': {
+              if (this.miningTask.isSubmitted()) {
+                let submitted = await this.miningTask.submit(payload.work)                
+                if (submitted) {
+                  // 200 'OK'
+                  response.setStatus(200)
+                } else {
+                  // 400 "Bad request"
+                  response.setStatus(400)
+                }
+              } else { // Not yet submitted
+                // 400 "Bad request"
+                response.setStatus(400)
+              }
+
+              // Attach payload
+              if (response.status < 400) {
+                response.payload.miningTask = this.miningTask
+              }
 
               break
             }
@@ -208,8 +229,7 @@ export default class Miner {
               // LOG
               console.log(this.sub, " is trying unknown " + action.toString())
 
-              // response.status = 400
-              // response.statusName = "Bad Request"
+              // 400 "Bad Request"
               response.setStatus(400)
             }
           }
@@ -223,11 +243,10 @@ export default class Miner {
         // webSocket.send("Error.")
 
         if (response.status <= 500) {
-          // response.status = 500
-          // response.statusName = "Internal Server Error"
+          // 500 "Internal Server Error"
           response.setStatus(500)
         }
-      } finally {
+      } finally { // Finally send the constructed response to client.
         // DEBUG
         // webSocket.send("Cloudflare Workers")
         // webSocket.send(JSON.stringify(this.Auth.userInfo))

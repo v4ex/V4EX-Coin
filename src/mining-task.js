@@ -1,4 +1,5 @@
 import Miner from './miner.js'
+import validateSchema from './validate-schema.js'
 
 // Value type
 // Stored in Miner Durable Object
@@ -82,12 +83,18 @@ export default class MiningTask {
     this.timestampInitialized = Date.now()
   }
 
-  // USER_INPUT
-  // TODO
-  // Filter data
-  submit(work) {
-    this.work = work
-    this.timestampSubmitted = Date.now()
+  // CAREFUL: USER_INPUT
+  async submit(work) {
+    let valid = await validateSchema('mining-task-work', work)
+    if (valid) {
+      this.work = work
+      this.timestampSubmitted = Date.now()
+
+      // Trigger save operation
+      this.save()
+      return true
+    }
+    return false
   }
 
   // ==========================================================================
