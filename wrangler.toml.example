@@ -1,10 +1,11 @@
 name = "v4ex-coin"
+# Credentials
+account_id = ""
+zone_id = ""
 # type = "javascript" is required to use the `[build]` section
 type = "javascript"
-account_id = ""
 workers_dev = true
 route = ""
-zone_id = ""
 
 
 [build]
