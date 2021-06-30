@@ -25,7 +25,7 @@ export default {
     let sub = Url.searchParams.get('sub') ?? 'V4EX'
 
     // Initialize Auth
-    const Auth = new AuthService(sub)
+    const Auth = new AuthService(sub, env)
 
     // ========================================================================
     // Handle root request
@@ -39,8 +39,10 @@ export default {
       }
       if (accessToken) {
         await Auth.auth(accessToken)
-        if (Auth.isAuthenticated) {
-          return new Response(JSON.stringify(Auth.userInfo), { status: 200 });
+        if (Auth.isAuthenticated()) {
+          // DEBUG
+          // console.log(Auth.userInfo())
+          return new Response(JSON.stringify(Auth.userInfo()), { status: 200 });
         }
       }
       // 2. accessToken not provided

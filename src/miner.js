@@ -43,7 +43,7 @@ export default class Miner {
     // Initialize Auth service and requirements
     this.Url = new URL(this.request.url)
     this.sub = this.Url.searchParams.get('sub') ?? this.sub
-    this.Auth = new AuthService(this.sub)
+    this.Auth = new AuthService(this.sub, this.env)
 
     // Try to initialize the mining task
     let storedMiningTask = await this.Storage.get(Miner.MINING_TASK)
@@ -55,12 +55,12 @@ export default class Miner {
     await this.Auth.auth(accessToken)
 
     // Equal pass value AuthServie authentication status
-    this.pass = this.Auth.isAuthenticated
+    this.pass = this.Auth.isAuthenticated() && this.Auth.isMiner()
 
     // Successful authenticated
     if (this.pass) {
       // Check Integrity of Durable Object
-      if (this.state.id.toString() != this.env.MINER.idFromName(this.Auth.userInfo.sub).toString()) {
+      if (this.state.id.toString() != this.env.MINER.idFromName(this.Auth.userInfo().sub).toString()) {
         this.pass = false
       }
     }
@@ -188,6 +188,7 @@ export default class Miner {
             case 'RESUBMIT': {
               // Only allow resubmit if not proceeded
               if (!this.miningTask.isProceeded() && this.miningTask.isSubmitted()) {
+                // TODO Check if the same content
                 let submitted = await this.miningTask.submit(payload.work)                
                 if (submitted) {
                   // 200 'OK'
