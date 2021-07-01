@@ -1,4 +1,4 @@
-import Miner from './miner.js'
+import Mining from './mining.js'
 import validateSchema from './validate-schema.js'
 
 // Value type
@@ -41,7 +41,7 @@ export default class MiningTask {
 
     // Only available when connected to Durable Object
     const self = JSON.parse(JSON.stringify(this))
-    await this.#Storage.put(Miner.MINING_TASK, self)
+    await this.#Storage.put(Mining.MINING_TASK, self)
   }
 
   //
@@ -50,7 +50,7 @@ export default class MiningTask {
       return
     }
 
-    await this.#Storage.delete(Miner.MINING_TASK)
+    await this.#Storage.delete(Mining.MINING_TASK)
   }
 
   // ==========================================================================

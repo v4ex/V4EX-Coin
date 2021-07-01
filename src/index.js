@@ -1,5 +1,5 @@
 import AuthService from './auth.js'
-import Miner from './miner.js'
+import Mining from './mining.js'
 
 import miningTaskSchema from '../schema/mining-task.json'
 import miningTaskWorkSchema from '../schema/mining-task-work.json'
@@ -10,7 +10,7 @@ const Schemas = {
 }
 
 export {
-  Miner
+  Mining
 }
 
 export default {  
@@ -60,12 +60,12 @@ export default {
 
     // ========================================================================
     // Durable Object Websocket
-    let id = env.MINER.idFromName(sub)
+    let id = env.MINING.idFromName(sub)
 
     // DEBUG
     // console.log(id)
 
-    let stub = await env.MINER.get(id)
+    let stub = await env.MINING.get(id)
 
     let response = await stub.fetch(request)
 

@@ -7,7 +7,7 @@ Status.getReasonPhrase = getReasonPhrase
 
 // Cloudflare Workers Durable Object
 // Runtime API https://developers.cloudflare.com/workers/runtime-apis/durable-objects
-export default class Miner {
+export default class Mining {
   // Predefined stored value keys
   static MINING_TASK = 'mining-task'
 
@@ -46,7 +46,7 @@ export default class Miner {
     this.Auth = new AuthService(this.sub, this.env)
 
     // Try to initialize the mining task
-    let storedMiningTask = await this.Storage.get(Miner.MINING_TASK)
+    let storedMiningTask = await this.Storage.get(Mining.MINING_TASK)
     this.miningTask = new MiningTask(storedMiningTask ?? { sub: this.sub }, this.Storage)
   }
 
@@ -60,7 +60,7 @@ export default class Miner {
     // Successful authenticated
     if (this.pass) {
       // Check Integrity of Durable Object
-      if (this.state.id.toString() != this.env.MINER.idFromName(this.Auth.userInfo().sub).toString()) {
+      if (this.state.id.toString() != this.env.MINING.idFromName(this.Auth.userInfo().sub).toString()) {
         this.pass = false
       }
     }
@@ -125,7 +125,7 @@ export default class Miner {
           // DEBUG
           // console.log("Durable Object id: ", this.state.id.toString())
           // if ('sub' in this.Auth.userInfo) {
-          //   console.log("Durable Object id from user sub: ", this.env.MINER.idFromName(this.Auth.userInfo.sub).toString())
+          //   console.log("Durable Object id from user sub: ", this.env.MINING.idFromName(this.Auth.userInfo.sub).toString())
           // }
           if (response.status < 300) {
             // 401 'Unauthorized'
@@ -159,7 +159,7 @@ export default class Miner {
             }
             //
             case 'VIEW': {
-              response.payload.miningTask = await this.Storage.get(Miner.MINING_TASK)
+              response.payload.miningTask = await this.Storage.get(Mining.MINING_TASK)
 
               break
             }
