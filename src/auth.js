@@ -2,6 +2,12 @@ import * as _ from 'lodash'
 
 // Authentication module
 export default class Auth {
+  // User roles
+  static ROLE_MINER = 'miner'
+  static ROLE_SERVER = 'server'
+  static ROLE_MINTER = 'minter'
+
+  // Class private members
   #auth0Endpoints = {
     userInfo: 'https://v4ex.us.auth0.com/userinfo'
   }
@@ -12,7 +18,7 @@ export default class Auth {
   #userInfo = {
     roles: []
   }
-  #userRoles = []
+  #roles = [] // Array of role objects
 
   constructor(sub, env) {
     this.#sub = sub
@@ -67,6 +73,7 @@ export default class Auth {
     }
 
     // Connect to Auth0 API to get user roles
+    // TODO this.#env.AUTH0_ACCESS_TOKEN has expiration period
     let response = await fetch(this.#auth0Endpoints.userRoles(), {
       method: 'GET',
       headers: {
@@ -76,12 +83,12 @@ export default class Auth {
 
     // Successful response
     if (response.status == 200) {
-      this.#userRoles = await response.json()
+      this.#roles = await response.json()
       // Check roles
-      if (_.find(this.#userRoles, { id: this.#env.AUTH0_MINER_ROLE_ID })) {
+      if (_.find(this.#roles, { id: this.#env.AUTH0_MINER_ROLE_ID })) {
         this.#userInfo.roles.push('miner')
       }
-      if (_.find(this.#userRoles, { id: this.#env.AUTH0_MINTER_ROLE_ID })) {
+      if (_.find(this.#roles, { id: this.#env.AUTH0_MINTER_ROLE_ID })) {
         this.#userInfo.roles.push('minter')
       }
     }
@@ -97,12 +104,25 @@ export default class Auth {
     return this.#userInfo
   }
 
+
+  // ==========================================================================
+  // Roles
+
   isMiner() {
-    return this.#userInfo.roles.includes('miner')
+    return this.#userInfo.roles.includes(Auth.ROLE_MINER)
+  }
+
+  isServer() {
+    return this.#userInfo.roles.includes(Auth.ROLE_SERVER)
   }
 
   isMinter() {
-    return this.#userInfo.roles.includes('minter')
+    return this.#userInfo.roles.includes(Auth.ROLE_MINTER)
+  }
+
+  // Check if user has roles
+  hasRoles(roles) {
+    return _.intersection(this.#userInfo.roles, roles).length > 0 ? true : false
   }
 
 }
