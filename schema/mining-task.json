@@ -12,6 +12,10 @@
           "const": "v1",
           "description": "Version of the Mining Task schema."
         },
+        "id": {
+          "type": "string",
+          "description": "Random identity."
+        },
         "sub": {
           "type": "string",
           "description": "Subject identification."

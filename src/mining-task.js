@@ -1,5 +1,7 @@
 import Mining from './mining.js'
 import validateSchema from './validate-schema.js'
+import Utils from './utils.js'
+
 
 // Value type
 // Stored in Miner Durable Object
@@ -16,6 +18,8 @@ export default class MiningTask {
   #Storage
 
   constructor({sub, timestampInitialized, timestampCommited, timestampSubmitted, timestampProceeded, timestampConfirmed, work}, storage) {
+    // Generated identity in initialize()
+    this.id
     // Durable Object Storage
     this.#Storage = storage
     // Miner information
@@ -79,8 +83,17 @@ export default class MiningTask {
   // ==========================================================================
   // User permissions
 
-  initialize() {
+  async initialize(callback) {
+    // Unique Id
+    this.id = await Utils.uniqueId()
+
     this.timestampInitialized = Date.now()
+
+    // Custom callback
+    callback && callback.bind(this)()
+
+    // Trigger save operation
+    await this.save()
   }
 
   // CAREFUL: USER_INPUT

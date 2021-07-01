@@ -138,8 +138,7 @@ export default class Mining {
               // Before interexchanging messages, this.miningTask value has been initialized from DO storage or by code
               // Miner can only initialize a mining task if there is none in proceeding
               if (!this.miningTask.isInitialized()) {
-                this.miningTask.initialize()
-                await this.miningTask.save()
+                await this.miningTask.initialize()
 
                 // 201 'Created'
                 response.setStatus(201)
