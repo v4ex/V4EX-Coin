@@ -1,6 +1,6 @@
 // Durable Object with Web Socket and Auth features
 
-import AuthService from './auth.js'
+import AuthService from '../utils/auth.js'
 
 import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
@@ -14,7 +14,7 @@ Status.getReasonPhrase = getReasonPhrase
  * @property {Request} Request Web request
  * @property {Url} Url Web request URL
  */
-export default class DurableObjectWebSocketAuth {
+export default class Api {
 
   // ==========================================================================
   // Customization

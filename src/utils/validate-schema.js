@@ -1,4 +1,4 @@
-import * as schemasValidate from '../schema/schemas.cjs'
+import * as schemasValidate from './schemas.cjs'
 
 export default function validateSchema($id, data) {
   // Allow input short schema id instead of full URI $id.

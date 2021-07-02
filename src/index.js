@@ -1,6 +1,11 @@
-import AuthService from './auth.js'
-import Mining from './mining.js'
+import AuthService from './utils/auth.js'
 
+//
+import Mining from './api/mining.js'
+import Minting from './api/minting.js'
+import Serving from './api/serving.js'
+
+//
 import miningTaskSchema from '../schema/mining-task.json'
 import miningTaskWorkSchema from '../schema/mining-task-work.json'
 
@@ -9,10 +14,14 @@ const Schemas = {
   "mining-task-work": miningTaskWorkSchema
 }
 
+// Export Durable Object classes
 export {
-  Mining
+  Mining,
+  Minting,
+  Serving
 }
 
+// Default Handler class of "modules" format
 export default {  
   async fetch(request, env) {
 
@@ -60,12 +69,18 @@ export default {
 
     // ========================================================================
     // Durable Object Websocket
-    let id = env.MINING.idFromName(sub)
 
-    // DEBUG
-    // console.log(id)
+    let id, stub
 
-    let stub = await env.MINING.get(id)
+    if (Url.pathname.startsWith('/example')) {
+      id = env.EXAMPLE.idFromName(sub)
+      stub = await env.EXAMPLE.get(id)
+    }
+
+    if (Url.pathname.startsWith('/mining')) {
+      id = env.MINING.idFromName(sub)
+      stub = await env.MINING.get(id)
+    }
 
     let response = await stub.fetch(request)
 

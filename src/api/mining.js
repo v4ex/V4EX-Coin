@@ -1,5 +1,5 @@
-import AuthService from './auth.js'
-import MiningTask from './mining-task.js'
+import AuthService from '../utils/auth.js'
+import MiningTask from './mining/mining-task.js'
 
 import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
@@ -31,7 +31,7 @@ export default class Mining {
     this.Auth = {} // Auth service
     this.pass = false // message passage status
     //
-    this.miningTasks = [] // List of mining tasks
+    // this.miningTasks = [] // List of mining tasks
     /**
      * @type {MiningTask}
      */
@@ -67,7 +67,7 @@ export default class Mining {
   }
 
   // ==========================================================================
-  // 
+  // Web Socket
 
   clearSession(session, webSocket) {
     this.sessions = this.sessions.filter((_session) => _session !== session)
@@ -118,20 +118,16 @@ export default class Mining {
         await this.auth(accessToken)
 
         
-        // Passed message
+        // Disallow
         if (!this.pass) {
           // DEBUG
           // webSocket.send('Unauthorized')
-          // DEBUG
-          // console.log("Durable Object id: ", this.state.id.toString())
-          // if ('sub' in this.Auth.userInfo) {
-          //   console.log("Durable Object id from user sub: ", this.env.MINING.idFromName(this.Auth.userInfo.sub).toString())
-          // }
+
           if (response.status < 300) {
             // 401 'Unauthorized'
             response.setStatus(401)
           }
-        } else {
+        } else { // Allow
           // Actions route
           switch (action) {
             case 'INITIALIZE': {

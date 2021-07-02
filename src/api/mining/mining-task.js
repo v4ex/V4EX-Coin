@@ -1,6 +1,7 @@
-import Mining from './mining.js'
-import validateSchema from './validate-schema.js'
-import Utils from './utils.js'
+import Mining from '../mining.js'
+
+import validateSchema from '../../utils/validate-schema.js'
+import Utils from '../../utils/utils.js'
 
 
 // Value type
