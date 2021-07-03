@@ -23,9 +23,10 @@ export default class Minting extends Api {
         break
       }
       default: {
-        console.log(this.subscriber, " is trying unknown " + action.toString())
-        // 400 "Bad Request"
-        this.Response.setStatus(400)
+        // Logging
+        console.log(this.sub, " is trying unknown " + action.toString())
+        // 501 "Not Implemented"
+        this.Response.setStatus(501)
       }
     }
   }

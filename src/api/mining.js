@@ -22,25 +22,30 @@ export default class Mining extends Api {
 
   async actionRoutes(action, payload) {
     switch (action) {
+      case 'HELP': {
+        // 501 "Not Implemented"
+        this.Response.setStatus(501)
+        break
+      }
       case 'INITIALIZE': {
         // Before interexchanging messages, this.miningTask value has been initialized from DO storage or by code
         // Miner can only initialize a mining task if there is none in proceeding
         if (!this.miningTask.isInitialized()) {
           await this.miningTask.initialize()
 
-          // 201 'Created'
-          this.Response.setStatus(201)
+          // 201 "Created"
+          this.Response.setStatus(201, "New mining task has been successfully initialized.")
         }
         else {
           // Mining task has been initialized
           // 304 "Not Modified"
-          this.Response.setStatus(304)
+          this.Response.setStatus(304, "Mining task has been initialized before.")
         }
         // DEBUG
         // console.log(`this.miningTask ${typeof this.miningTask} is: `, this.miningTask)
 
         // Add data to payload
-        this.Response.payload.miningTask = this.miningTask
+        this.Response.payload.miningTask = this.miningTask.clone()
 
         break
       }
@@ -50,32 +55,35 @@ export default class Mining extends Api {
         if (storedMiningTask) {
           // 200 "OK"
           this.Response.setStatus(200)
-          this.Response.payload.miningTask = await this.Storage.get(Mining.MINING_TASK)
+          this.Response.payload.miningTask = storedMiningTask
         } else {
-          // 404 "NOT FOUND"
-          this.Response.setStatus(404)
+          // 404 "Not Found"
+          this.Response.setStatus(404, "Mining task is not yet existed, INITIALIZE can create it.")
         }
 
         break
       }
       case 'SUBMIT': {
-        if (!this.miningTask.isSubmitted()) {
+        if (!this.miningTask.isInitialized()) {
+          // 404 "Not Found"
+          this.Response.setStatus(404, "Mining task is not yet existed, INITIALIZE can create it.")
+        } else if (!this.miningTask.isSubmitted()) {
           let submitted = await this.miningTask.submit(payload.work)                
           if (submitted) {
-            // 201 'Created'
+            // 201 "Created"
             this.Response.setStatus(201)
           } else {
-            // 400 "Bad request"
-            this.Response.setStatus(400)
+            // 406 "Not Acceptable"
+            this.Response.setStatus(406, "Submitted work details has failed in verification.")
           }
         } else { // Already submitted
-          // 304 "Not Modified"
-          this.Response.setStatus(304)
+          // 409 "Conflict"
+          this.Response.setStatus(409, "Work information exists, RESUBMIT can override.")
         }
 
         // Attach payload
         if (this.Response.status < 400) {
-          this.Response.payload.miningTask = this.miningTask
+          this.Response.payload.miningTask = this.miningTask.clone()
         }
 
         break
@@ -89,48 +97,43 @@ export default class Mining extends Api {
             // 200 'OK'
             this.Response.setStatus(200)
           } else {
-            // 400 "Bad request"
-            this.Response.setStatus(400)
+            // 406 "Not Acceptable"
+            this.Response.setStatus(406, "Submitted work details has failed in verification.")
           }
         } else { // Not yet submitted
-          // 400 "Bad request"
-          this.Response.setStatus(400)
+          // 409 "Conflict"
+          this.Response.setStatus(409, "Work information is not yet existed, SUBMIT can create it.")
         }
 
         // Attach payload
         if (this.Response.status < 400) {
-          this.Response.payload.miningTask = this.miningTask
+          this.Response.payload.miningTask = this.miningTask.clone()
         }
 
         break
       }
       // DEBUG
-      // case 'SAVE': {
-      //   await this.miningTask.save()
-      //   this.Response.payload.miningTask = this.miningTask
-      //   // DEBUG
-      //   console.log("Mining task in storage: ", await this.Storage.get(Miner.MINING_TASK))
-
-      //   break
-      // }
-      // DEBUG
-      case 'DESTROY': { // SHOULD only allow in Admin
-        await this.miningTask.destroy()
-        this.miningTask = new MiningTask({ sub: this.sub }, this.Storage)
-
-        // 200 "OK"
-        this.Response.setStatus(200)
+      // SHOULD only allow in Admin ?
+      case 'DESTROY': {
+        // Nothing to destroy
+        if (this.miningTask.isInitialized()) {
+          await this.miningTask.destroy()
+          this.miningTask = new MiningTask({ sub: this.sub }, this.Storage)
+  
+          // 204 "No Content"
+          this.Response.setStatus(204, "Mining task has been destroyed.")
+        } else {
+          // 409 "Conflict"
+          this.Response.setStatus(409, "Mining task is not yet existed, INITIALIZE can create it.")
+        }
 
         break
       }
       default: {
-        // DEBUG
-        // webSocket.send('Unknown API request.')
-        // LOG
+        // Logging
         console.log(this.sub, " is trying unknown " + action.toString())
-
-        // 400 "Bad Request"
-        this.Response.setStatus(400)
+        // 501 "Not Implemented"
+        this.Response.setStatus(501)
       }
     }
   }

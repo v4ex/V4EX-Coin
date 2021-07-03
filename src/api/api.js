@@ -33,9 +33,10 @@ export default class Api {
         break
       }
       default: {
-        console.log(this.subscriber, " is trying unknown " + action.toString())
-        // 400 "Bad Request"
-        this.Response.setStatus(400)
+        // Logging
+        console.log(this.sub, " is trying unknown " + action.toString())
+        // 501 "Not Implemented"
+        this.Response.setStatus(501)
       }
     }
   }
@@ -60,13 +61,20 @@ export default class Api {
       statusName: Status['200_NAME'],
       statusReason: Status.getReasonPhrase(200),
       statusMessage: Status['200_MESSAGE'],
+      statusAdditionalMessage: undefined,
       payload: {}
     }
-    this.Response.setStatus = status => {
+    this.Response.setStatus = (status, additionalMessage) => {
       this.Response.status = status
       this.Response.statusName = Status[`${status}_NAME`]
       this.Response.statusReason = Status.getReasonPhrase(status),
       this.Response.statusMessage = Status[`${status}_MESSAGE`]
+      // Has additionalMessage passed in
+      if (additionalMessage) {
+        this.Response.statusAdditionalMessage = additionalMessage.toString()
+      } else {
+        this.Response.statusAdditionalMessage = undefined
+      }
       // Reset payload when setting new status.
       this.Response.payload = {}
     }
