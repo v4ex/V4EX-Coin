@@ -88,6 +88,9 @@ export default class Auth {
       if (_.find(this.#roles, { id: this.#env.AUTH0_MINER_ROLE_ID })) {
         this.#userInfo.roles.push('miner')
       }
+      if (_.find(this.#roles, { id: this.#env.AUTH0_SERVER_ROLE_ID })) {
+        this.#userInfo.roles.push('server')
+      }
       if (_.find(this.#roles, { id: this.#env.AUTH0_MINTER_ROLE_ID })) {
         this.#userInfo.roles.push('minter')
       }

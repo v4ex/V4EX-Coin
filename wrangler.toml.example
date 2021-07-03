@@ -17,5 +17,15 @@ format = "modules"
 main = "./worker.mjs"
 
 
+[vars]
+AUTH0_MINER_ROLE_ID = ""
+AUTH0_MINTER_ROLE_ID = ""
+AUTH0_SERVER_ROLE_ID = ""
+
+
 [durable_objects]
-bindings = [{name = "MINER", class_name = "Miner"}]
+bindings = [
+  {name = "MINING", class_name = "Mining"},
+  {name = "MINTING", class_name = "Minting"},
+  {name = "SERVING", class_name = "Serving"},
+]
