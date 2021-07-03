@@ -18,6 +18,7 @@ main = "./worker.mjs"
 
 
 [vars]
+IDENTITY = "MyCoin"
 AUTH0_MINER_ROLE_ID = ""
 AUTH0_MINTER_ROLE_ID = ""
 AUTH0_SERVER_ROLE_ID = ""

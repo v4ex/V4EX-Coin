@@ -55,7 +55,7 @@ export default class Api {
     this.url     // Web request URL
     // Web Response
     this.Response = {
-      server: 'V4EX',
+      server: this.env.IDENTITY,
       status: 200,
       statusName: Status['200_NAME'],
       statusReason: Status.getReasonPhrase(200),
