@@ -20,8 +20,7 @@ export default class Auth {
   }
   #roles = [] // Array of role objects
 
-  constructor(sub, env) {
-    this.#sub = sub
+  constructor(env) {
     this.#env = env
     this.#auth0Endpoints.userRoles = () => {
       return `https://v4ex.us.auth0.com/api/v2/users/${encodeURIComponent(this.#sub)}/roles`
@@ -34,7 +33,7 @@ export default class Auth {
       this.#accessToken = accessToken
     
       // Connect to Auth0 API to get userinfo
-      let response = await fetch(this.#auth0Endpoints.userInfo, {
+      let userInfoResponse = await fetch(this.#auth0Endpoints.userInfo, {
         method: 'GET',
         headers: {
           authorization: "bearer " + accessToken
@@ -42,12 +41,18 @@ export default class Auth {
       })
 
       // Successful response
-      if (response.status == 200) {
-        this.#userInfo = _.merge(await response.json(), this.#userInfo)
-        // Check sub integrity
-        if (this.#userInfo.sub === this.#sub) {
+      if (userInfoResponse.status == 200) {
+        this.#userInfo = _.merge(await userInfoResponse.json(), this.#userInfo)
+        
+        // DEPRECATED Get user sub from Auth0 instead
+        // // Check sub integrity
+        // if (this.#userInfo.sub === this.#sub) {
+        //   this.#isAuthenticated = true
+        // }
+        if (this.#sub = this.#userInfo.sub) {
           this.#isAuthenticated = true
         }
+
         // After authentication
         if (this.#isAuthenticated) {
           // Use Management API to get user roles.

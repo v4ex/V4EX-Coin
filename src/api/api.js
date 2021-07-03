@@ -33,7 +33,7 @@ export default class Api {
         break
       }
       default: {
-        console.log(this.sub, " is trying unknown " + action.toString())
+        console.log(this.subscriber, " is trying unknown " + action.toString())
         // 400 "Bad Request"
         this.Response.setStatus(400)
       }
@@ -67,9 +67,11 @@ export default class Api {
       this.Response.statusName = Status[`${status}_NAME`]
       this.Response.statusReason = Status.getReasonPhrase(status),
       this.Response.statusMessage = Status[`${status}_MESSAGE`]
+      // Reset payload when setting new status.
+      this.Response.payload = {}
     }
     // Authentication
-    this.sub = 'V4EX' // User sub
+    this.subscriber = 'V4EX' // User sub
     this.Auth         // Auth service
     this.pass = false // message passage status
   }
@@ -78,8 +80,9 @@ export default class Api {
   async initialize() {
     // Initialize Auth service and requirements
     this.url = new URL(this.request.url)
-    this.sub = this.url.searchParams.get('sub') ?? this.sub
-    this.Auth = new AuthService(this.sub, this.env)
+    // DEPRECATED Get user sub by AuthService instead.
+    // this.sub = this.url.searchParams.get('sub') ?? this.sub
+    this.Auth = new AuthService(this.env)
   }
 
   // ==========================================================================
@@ -98,9 +101,12 @@ export default class Api {
 
     // Successful authenticated
     if (this.pass) {
+      // Assign user sub
+      this.subscriber = this.Auth.userInfo().sub
+
       // Check Integrity of Durable Object
       // This Durable Object is creating with sub as name to generate fixed Id
-      if (this.state.id.toString() != this.env[this.bindingName].idFromName(this.Auth.userInfo().sub).toString()) {
+      if (this.state.id.toString() != this.env[this.bindingName].idFromName(this.subscriber).toString()) {
         // DEBUG
         // console.log("Checking Durable Object integrity.")
         this.pass = false

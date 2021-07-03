@@ -29,12 +29,9 @@ export default {
     // console.log('Hello from Cloudflare Workers')
 
     const Url = new URL(request.url)
-    
-    // ?sub=${sub}
-    let sub = Url.searchParams.get('sub') ?? 'V4EX'
 
     // Initialize Auth
-    const Auth = new AuthService(sub, env)
+    const Auth = new AuthService(env)
 
     // ========================================================================
     // Handle root request
@@ -55,7 +52,7 @@ export default {
         }
       }
       // 2. accessToken not provided
-      return new Response(sub, { status: 200 });
+      return new Response("V4EX Coin", { status: 200 });
     }
 
     // ========================================================================
@@ -70,14 +67,25 @@ export default {
     // ========================================================================
     // Durable Object Websocket
 
+    // ?sub=${sub}
+    let sub = Url.searchParams.get('sub') ?? 'V4EX'
+
     let id, stub
 
-    if (Url.pathname.startsWith('/example')) {
-      id = env.EXAMPLE.idFromName(sub)
-      stub = await env.EXAMPLE.get(id)
+    // wss://${hostname}/mining?sub=${sub}
+    if (Url.pathname.startsWith('/mining')) {
+      id = env.MINING.idFromName(sub)
+      stub = await env.MINING.get(id)
     }
 
-    if (Url.pathname.startsWith('/mining')) {
+    // wss://${hostname}/serving?sub=${sub}
+    if (Url.pathname.startsWith('/serving')) {
+      id = env.MINING.idFromName(sub)
+      stub = await env.MINING.get(id)
+    }
+
+    // wss://${hostname}/minting?sub=${sub}
+    if (Url.pathname.startsWith('/minting')) {
       id = env.MINING.idFromName(sub)
       stub = await env.MINING.get(id)
     }
