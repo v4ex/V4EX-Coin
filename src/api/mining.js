@@ -46,7 +46,15 @@ export default class Mining extends Api {
       }
       //
       case 'VIEW': {
-        this.Response.payload.miningTask = await this.Storage.get(Mining.MINING_TASK)
+        let storedMiningTask = await this.Storage.get(Mining.MINING_TASK)
+        if (storedMiningTask) {
+          // 200 "OK"
+          this.Response.setStatus(200)
+          this.Response.payload.miningTask = await this.Storage.get(Mining.MINING_TASK)
+        } else {
+          // 404 "NOT FOUND"
+          this.Response.setStatus(404)
+        }
 
         break
       }
