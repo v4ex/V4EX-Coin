@@ -12,23 +12,23 @@ export default class Minting extends Api {
 
   }
 
-  async actionRoutes(action, payload) {
+  async actionRoutes(action, payload, responseMessage) {
+
     switch (action) {
       case 'DEFAULT': {
         // 200 "OK"
-        this.Response.setStatus(200)
-
-        this.Response.payload.userInfo = this.Auth.userInfo()
-
+        responseMessage.setStatus(200)
         break
       }
       default: {
         // Logging
         console.log(this.sub, " is trying unknown " + action.toString())
         // 501 "Not Implemented"
-        this.Response.setStatus(501)
+        responseMessage.setStatus(501)
       }
     }
+
+    return responseMessage
   }
 
 }

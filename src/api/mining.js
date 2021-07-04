@@ -15,127 +15,135 @@ export default class Mining extends Api {
 
     this.userRoles = ['miner']
 
-    // Try to initialize the mining task
+    await this.initializeMiningTask()
+  }
+
+  // Initialize the mining task
+  async initializeMiningTask() {
     let storedMiningTask = await this.Storage.get(Mining.MINING_TASK)
     this.miningTask = new MiningTask(storedMiningTask ?? { sub: this.sub }, this.Storage)
   }
 
-  async actionRoutes(action, payload) {
+  async actionRoutes(action, payload, responseMessage) {
     switch (action) {
       case 'HELP': {
         // 501 "Not Implemented"
-        this.Response.setStatus(501)
-        break
-      }
-      case 'INITIALIZE': {
-        // Before interexchanging messages, this.miningTask value has been initialized from DO storage or by code
-        // Miner can only initialize a mining task if there is none in proceeding
-        if (!this.miningTask.isInitialized()) {
-          await this.miningTask.initialize()
-
-          // 201 "Created"
-          this.Response.setStatus(201, "New mining task has been successfully initialized.")
-        }
-        else {
-          // Mining task has been initialized
-          // 304 "Not Modified"
-          this.Response.setStatus(304, "Mining task has been initialized before.")
-        }
-        // DEBUG
-        // console.log(`this.miningTask ${typeof this.miningTask} is: `, this.miningTask)
-
-        // Add data to payload
-        this.Response.payload.miningTask = this.miningTask.clone()
-
+        responseMessage.setStatus(501)
+        
         break
       }
       //
       case 'VIEW': {
-        let storedMiningTask = await this.Storage.get(Mining.MINING_TASK)
-        if (storedMiningTask) {
+        if (this.miningTask.isInitialized()) {
           // 200 "OK"
-          this.Response.setStatus(200)
-          this.Response.payload.miningTask = storedMiningTask
+          responseMessage.setStatus(200, "Returning the initialized Mining Task.")
         } else {
-          // 404 "Not Found"
-          this.Response.setStatus(404, "Mining task is not yet existed, INITIALIZE can create it.")
+          // 206 "Partial Content"
+          responseMessage.setStatus(206, "Mining Task is not yet initialized. Use INITIALIZE.")
+        }
+
+        // Add data to payload
+        if (responseMessage.status < 400) {
+          responseMessage.payload.miningTask = this.miningTask.clone()
+        }
+
+        break
+      }
+      case 'INITIALIZE': {
+        // Before interexchanging messages, this.miningTask value has been initialized from DO storage or by code
+        // Miner can only initialize a mining task if there is none exists
+        if (this.miningTask.isInitialized()) {
+          // 409 "Conflict"
+          responseMessage.setStatus(409, "Mining Task has been initialized before.")
+        } else { // Mining Task not yet initialized
+          let initialized = await this.miningTask.initialize()
+          if (initialized) {
+            // 201 "Created"
+            responseMessage.setStatus(201, "New Mining Task has been successfully initialized.")
+          }
+        }
+
+        // DEBUG
+        // console.log(`this.miningTask ${typeof this.miningTask} is: `, this.miningTask)
+
+        // Add data to payload
+        if (responseMessage.status < 400) {
+          responseMessage.payload.miningTask = this.miningTask.clone()
         }
 
         break
       }
       case 'SUBMIT': {
-        if (!this.miningTask.isInitialized()) {
-          // 404 "Not Found"
-          this.Response.setStatus(404, "Mining task is not yet existed, INITIALIZE can create it.")
-        } else if (!this.miningTask.isSubmitted()) {
+        if (!this.miningTask.isInitialized()) { // Not yet initialized
+          // 409 "Conflict"
+          responseMessage.setStatus(409, "Mining Task is not yet initialized, run INITIALIZE first.")
+        } else if (this.miningTask.isSubmitted()) { // Already submitted
+          // 409 "Conflict"
+          responseMessage.setStatus(409, "Work information exists, RESUBMIT can override.")
+        } else { // Initialized, but not yet submitted
           let submitted = await this.miningTask.submit(payload.work)                
           if (submitted) {
             // 201 "Created"
-            this.Response.setStatus(201)
+            responseMessage.setStatus(201, "New work information has been successfully submitted.")
           } else {
             // 406 "Not Acceptable"
-            this.Response.setStatus(406, "Submitted work details has failed in verification.")
+            responseMessage.setStatus(406, "Submitted work details has failed in verification.")
           }
-        } else { // Already submitted
-          // 409 "Conflict"
-          this.Response.setStatus(409, "Work information exists, RESUBMIT can override.")
         }
 
         // Attach payload
-        if (this.Response.status < 400) {
-          this.Response.payload.miningTask = this.miningTask.clone()
+        if (responseMessage.status < 400) {
+          responseMessage.payload.miningTask = this.miningTask.clone()
         }
 
         break
       }
       case 'RESUBMIT': {
         // Only allow resubmit if not proceeded
-        if (!this.miningTask.isProceeded() && this.miningTask.isSubmitted()) {
-          // TODO Check if the same content
-          let submitted = await this.miningTask.submit(payload.work)                
-          if (submitted) {
-            // 200 'OK'
-            this.Response.setStatus(200)
-          } else {
-            // 406 "Not Acceptable"
-            this.Response.setStatus(406, "Submitted work details has failed in verification.")
+        if (this.miningTask.isSubmitted()) { // Submitted
+          if (this.miningTask.isProceeded()) { // Submitted and proceeded
+            // 409 "Conflict";
+            responseMessage.setStatus(409, "RESUBMIT is disallowed. Mining task has been already proceeded.")
+          } else { // Submitted, but not yet proceeded
+            // TODO Check if the same content
+            let submitted = await this.miningTask.submit(payload.work)                
+            if (submitted) {
+              // 200 'OK'
+              responseMessage.setStatus(200, "Resubmitted work information has overridden previous one.")
+            } else {
+              // 406 "Not Acceptable"
+              responseMessage.setStatus(406, "Resubmitted work details has failed in verification.")
+            }
           }
         } else { // Not yet submitted
           // 409 "Conflict"
-          this.Response.setStatus(409, "Work information is not yet existed, SUBMIT can create it.")
+          responseMessage.setStatus(409, "RESUBMIT is disallowed. Work information is not yet existed, SUBMIT can create it.")
         }
 
         // Attach payload
-        if (this.Response.status < 400) {
-          this.Response.payload.miningTask = this.miningTask.clone()
+        if (responseMessage.status < 400) {
+          responseMessage.payload.miningTask = this.miningTask.clone()
         }
 
         break
       }
-      // DEBUG
-      // SHOULD only allow in Admin ?
-      case 'DESTROY': {
-        // Nothing to destroy
-        if (this.miningTask.isInitialized()) {
-          await this.miningTask.destroy()
-          this.miningTask = new MiningTask({ sub: this.sub }, this.Storage)
-  
-          // 204 "No Content"
-          this.Response.setStatus(204, "Mining task has been destroyed.")
-        } else {
-          // 409 "Conflict"
-          this.Response.setStatus(409, "Mining task is not yet existed, INITIALIZE can create it.")
-        }
+      case 'RESET': {
+        await this.miningTask.reset()
+        await this.initializeMiningTask()
+        // 205 "Reset Content"
+        responseMessage.setStatus(205, "Mining task has been successfully resetted.")
 
         break
       }
       default: {
         // Logging
-        console.log(this.sub, " is trying unknown " + action.toString())
+        console.warn(this.sub, " is trying unknown " + action)
         // 501 "Not Implemented"
-        this.Response.setStatus(501)
+        responseMessage.setStatus(501, `Unknown action: ${action}`)
       }
     }
+
+    return responseMessage
   }
 
 }

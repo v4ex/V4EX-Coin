@@ -1,4 +1,4 @@
-import AuthService from './utils/auth.js'
+import AuthService from './services/auth-service.js'
 
 //
 import Mining from './api/mining.js'
@@ -6,8 +6,8 @@ import Minting from './api/minting.js'
 import Serving from './api/serving.js'
 
 //
-import miningTaskSchema from '../schema/mining-task.json'
-import miningTaskWorkSchema from '../schema/mining-task-work.json'
+import miningTaskSchema from './services/schemas-service/mining-task.json'
+import miningTaskWorkSchema from './services/schemas-service/mining-task-work.json'
 
 const Schemas = {
   "mining-task": miningTaskSchema,
@@ -80,14 +80,14 @@ export default {
 
     // wss://${hostname}/serving?sub=${sub}
     if (Url.pathname.startsWith('/serving')) {
-      id = env.MINING.idFromName(sub)
-      stub = await env.MINING.get(id)
+      id = env.SERVING.idFromName(sub)
+      stub = await env.SERVING.get(id)
     }
 
     // wss://${hostname}/minting?sub=${sub}
     if (Url.pathname.startsWith('/minting')) {
-      id = env.MINING.idFromName(sub)
-      stub = await env.MINING.get(id)
+      id = env.MINTING.idFromName(sub)
+      stub = await env.MINTING.get(id)
     }
 
     let response = await stub.fetch(request)

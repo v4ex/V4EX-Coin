@@ -1,14 +1,34 @@
 // Durable Object with Web Socket and Auth features
 
-import AuthService from '../utils/auth.js'
+import AuthService from '../services/auth-service.js'
 
 import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
 Status.getReasonPhrase = getReasonPhrase
 
+// ============================================================================
+// WebSocket Message
 
+class ResponseMessage {
+  status = 200
+  statusReason = Status.getReasonPhrase(200)
+  statusMessage = Status[`200_MESSAGE`]
+  payload = {}
+
+  setStatus(status, message) {
+    this.status = status
+    this.statusReason = Status.getReasonPhrase(status)
+    this.statusMessage = message ? message.toString() : Status[`${status}_MESSAGE`]
+    // Reset payload when setting new status.
+    this.payload = {}
+  }
+}
+
+// ============================================================================
+// Base API class
 // Cloudflare Workers Durable Object
-// Serving API for Server
+// Web Socket
+
 /**
  * @property {AuthService} Auth
  * @property {Request} Request Web request
@@ -24,21 +44,30 @@ export default class Api {
   routePrefix    // Request route prefix e.g. '/example'
   userRoles = [] // User roles
 
-  // Override to handle web socket messages
-  async actionRoutes(action, payload) {
+  /**
+   * Override this method to handle web socket messages
+   * 
+   * @param {String} action 
+   * @param {*} payload 
+   * @param {ResponseMessage} responseMessage 
+   * @returns 
+   */
+  async actionRoutes(action, payload, responseMessage) {
     switch (action) {
       case 'DEFAULT': {
         // 200 "OK"
-        this.Response.setStatus(200)
+        responseMessage.setStatus(200)
         break
       }
       default: {
         // Logging
-        console.log(this.sub, " is trying unknown " + action.toString())
+        console.warn(this.sub, " is trying unknown " + action.toString())
         // 501 "Not Implemented"
-        this.Response.setStatus(501)
+        responseMessage.setStatus(501, `Unknown action: ${action}`)
       }
     }
+
+    return responseMessage
   }
 
   // ==========================================================================
@@ -46,41 +75,17 @@ export default class Api {
 
   constructor(state, env){
     // Durable Object
-    this.state = state                // Durable Object state
-    this.Storage = this.state.storage // Durable Object Storage
-    this.env = env                    // Durable Object env
+    this.State = state                // Durable Object state
+    this.Storage = this.State.storage // Durable Object Storage
+    this.Env = env                    // Durable Object env
     // Web Socket
     this.sessions = [] // Web socket sessions
     // Web request
     this.request // Web request
     this.url     // Web request URL
-    // Web Response
-    this.Response = {
-      server: this.env.IDENTITY,
-      status: 200,
-      statusName: Status['200_NAME'],
-      statusReason: Status.getReasonPhrase(200),
-      statusMessage: Status['200_MESSAGE'],
-      statusAdditionalMessage: undefined,
-      payload: {}
-    }
-    this.Response.setStatus = (status, additionalMessage) => {
-      this.Response.status = status
-      this.Response.statusName = Status[`${status}_NAME`]
-      this.Response.statusReason = Status.getReasonPhrase(status),
-      this.Response.statusMessage = Status[`${status}_MESSAGE`]
-      // Has additionalMessage passed in
-      if (additionalMessage) {
-        this.Response.statusAdditionalMessage = additionalMessage.toString()
-      } else {
-        this.Response.statusAdditionalMessage = undefined
-      }
-      // Reset payload when setting new status.
-      this.Response.payload = {}
-    }
     // Authentication
     this.subscriber = 'V4EX' // User sub
-    this.Auth         // Auth service
+    this.authService         // Auth service
     this.pass = false // message passage status
   }
 
@@ -90,7 +95,7 @@ export default class Api {
     this.url = new URL(this.request.url)
     // DEPRECATED Get user sub by AuthService instead.
     // this.sub = this.url.searchParams.get('sub') ?? this.sub
-    this.Auth = new AuthService(this.env)
+    this.authService = new AuthService(this.Env)
   }
 
   // ==========================================================================
@@ -98,25 +103,25 @@ export default class Api {
 
   // Get userinfo from authenticated Auth0 user
   async auth(accessToken) {
-    await this.Auth.auth(accessToken)
+    await this.authService.auth(accessToken)
 
     // Equal pass value AuthServie authentication status
     // And check roles
-    this.pass = this.Auth.isAuthenticated() && (this.userRoles.length === 0 || this.Auth.hasRoles(this.userRoles))
+    this.pass = this.authService.isAuthenticated() && (this.userRoles.length === 0 || this.authService.hasRoles(this.userRoles))
 
     // DEBUG
-    // console.log(this.Auth.userInfo())
+    // console.debug(this.Auth.userInfo())
 
     // Successful authenticated
     if (this.pass) {
       // Assign user sub
-      this.subscriber = this.Auth.userInfo().sub
+      this.subscriber = this.authService.userInfo().sub
 
       // Check Integrity of Durable Object
       // This Durable Object is creating with sub as name to generate fixed Id
-      if (this.state.id.toString() != this.env[this.bindingName].idFromName(this.subscriber).toString()) {
+      if (this.State.id.toString() != this.Env[this.bindingName].idFromName(this.subscriber).toString()) {
         // DEBUG
-        // console.log("Checking Durable Object integrity.")
+        // console.debug("Checking Durable Object integrity.")
         this.pass = false
       }
     }
@@ -144,45 +149,46 @@ export default class Api {
 
     // Handle 'message' event
     webSocket.addEventListener('message', async ({ data }) => {
+      // Default response message
+      let responseMessage = new ResponseMessage()
+
+      // DEBUG
+      // console.debug(responseMessage)
+
       try {
         // Extract data from client message
         const { accessToken, action, payload } = JSON.parse(data)
         // DEBUG
-        // console.log("accessToken: ", accessToken)
-        // console.log("action: ", action)
-        // console.log("payload: ", payload)
+        // console.debug("accessToken: ", accessToken)
+        // console.debug("action: ", action)
+        // console.debug("payload: ", payload)
 
         // Authentication
         await this.auth(accessToken)
 
         // Disallow
         if (!this.pass) {
-          if (this.Response.status < 300) {
+          if (responseMessage.status < 400) {
             // 401 'Unauthorized'
-            this.Response.setStatus(401)
+            responseMessage.setStatus(401)
           }
         } else { // Allow
           // ActionRoutes callback
-          await this.actionRoutes(action, payload)
+          responseMessage = await this.actionRoutes(action.toString(), payload, responseMessage)
         }
       } catch (error) {
         // Error
         console.error("Error caught processing income message: ", error.message);
         console.error(error.stack);
 
-        // DEBUG
-        // webSocket.send("Error.")
-
-        if (this.Response.status <= 500) {
+        if (responseMessage.status <= 500) {
           // 500 "Internal Server Error"
-          this.Response.setStatus(500)
+          responseMessage.setStatus(500)
         }
       } finally { // Finally send the constructed response to client.
         // DEBUG
-        // webSocket.send("Cloudflare Workers")
-        // webSocket.send(JSON.stringify(this.Auth.userInfo))
-
-        webSocket.send(JSON.stringify(this.Response))
+        // console.debug(responseMessage)
+        this.broadcast(responseMessage)
       }
     })
 

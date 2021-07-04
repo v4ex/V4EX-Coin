@@ -1,7 +1,8 @@
 import Mining from '../mining.js'
 
-import validateSchema from '../../utils/validate-schema.js'
 import Utils from '../../utils/utils.js'
+
+import SchemasService from '../../services/schemas-service.js'
 
 
 // Value type
@@ -81,13 +82,13 @@ export default class MiningTask {
     await this.#Storage.put(Mining.MINING_TASK, this.clone())
   }
 
-  // Delete the cloned object saved in Durable Object.
-  async destroy() {
+  // Reset the cloned object saved in Durable Object.
+  async reset() {
     if (!this.#Storage) {
       return
     }
 
-    await this.#Storage.delete(Mining.MINING_TASK)
+    await this.#Storage.put(Mining.MINING_TASK, { sub: this.#sub })
   }
 
   // ==========================================================================
@@ -120,17 +121,24 @@ export default class MiningTask {
   // ==========================================================================
   // User permissions
 
+  // Initialized Mining Task has random id and timestampInitialized.
   async initialize(callback) {
-    // Unique Id
-    this.#id = await Utils.uniqueId()
+    try {
+      // Random Id
+      this.#id = await Utils.randomId()
 
-    this.#timestampInitialized = Date.now()
+      this.#timestampInitialized = Date.now()
 
-    // Custom callback
-    callback && await callback.bind(this)()
+      // Custom callback
+      callback && await callback.bind(this)()
 
-    // Trigger save operation
-    await this.save()
+      // Trigger save operation
+      await this.save()
+    } catch (e) {
+      return false
+    }
+
+    return true
   }
 
   // CAREFUL: USER_INPUT
@@ -140,7 +148,7 @@ export default class MiningTask {
       return false
     }
 
-    let valid = await validateSchema('mining-task-work', work)
+    let valid = await SchemasService.validateSchema('mining-task-work', work)
     if (valid) {
       this.#work = work
       if (this.isSubmitted()) {
@@ -171,6 +179,13 @@ export default class MiningTask {
 
   confirm() {
     this.#timestampConfirmed = Date.now()
+  }
+
+  // ==========================================================================
+  // Getter
+
+  get sub() {
+    return this.#sub
   }
 
 }

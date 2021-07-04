@@ -1,7 +1,7 @@
 import * as _ from 'lodash'
 
 // Authentication module
-export default class Auth {
+export default class AuthService {
   // User roles
   static ROLE_MINER = 'miner'
   static ROLE_SERVER = 'server'
@@ -42,7 +42,12 @@ export default class Auth {
 
       // Successful response
       if (userInfoResponse.status == 200) {
-        this.#userInfo = _.merge(await userInfoResponse.json(), this.#userInfo)
+        let userInfo = await userInfoResponse.json()
+        
+        // DEBUG
+        // console.debug(userInfo)
+
+        this.#userInfo = _.merge(userInfo, this.#userInfo)
         
         // DEPRECATED Get user sub from Auth0 instead
         // // Check sub integrity
@@ -61,10 +66,13 @@ export default class Auth {
       }
       // Unauthorized
 
-    } else {
-      // Already authenticated
+    } else { // Already authenticated
       // Changed accessToken
       if (accessToken != this.#accessToken) {
+
+        // DEBUG
+        // console.debug("Changed accessToken.")
+
         this.#isAuthenticated = false
         await this.auth(accessToken)
       }
@@ -72,11 +80,6 @@ export default class Auth {
   }
 
   async fetchUserRoles() {
-    // Only procceed if user is already authenticated
-    if (!this.#isAuthenticated) {
-      return
-    }
-
     // Connect to Auth0 API to get user roles
     // TODO this.#env.AUTH0_ACCESS_TOKEN has expiration period
     let response = await fetch(this.#auth0Endpoints.userRoles(), {
@@ -117,15 +120,15 @@ export default class Auth {
   // Roles
 
   isMiner() {
-    return this.#userInfo.roles.includes(Auth.ROLE_MINER)
+    return this.#userInfo.roles.includes(AuthService.ROLE_MINER)
   }
 
   isServer() {
-    return this.#userInfo.roles.includes(Auth.ROLE_SERVER)
+    return this.#userInfo.roles.includes(AuthService.ROLE_SERVER)
   }
 
   isMinter() {
-    return this.#userInfo.roles.includes(Auth.ROLE_MINTER)
+    return this.#userInfo.roles.includes(AuthService.ROLE_MINTER)
   }
 
   // Check if user has roles

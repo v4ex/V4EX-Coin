@@ -12,35 +12,37 @@ export default class Serving extends Api {
 
   }
 
-  async actionRoutes(action, payload) {
+  async actionRoutes(action, payload, responseMessage) {
     switch (action) {
       // TODO
       case 'HELP': {
         // 501 "Not Implemented"
-        this.Response.setStatus(501)
+        responseMessage.setStatus(501)
         break
       }
       // TODO
       case 'LIST': {
         // 501 "Not Implemented"
-        this.Response.setStatus(501)
+        responseMessage.setStatus(501)
         break
       }
       case 'DEFAULT': {
         // 200 "OK"
-        this.Response.setStatus(200)
+        responseMessage.setStatus(200)
 
-        this.Response.payload.userInfo = this.Auth.userInfo()
+        responseMessage.payload.userInfo = this.authService.userInfo()
 
         break
       }
       default: {
         // Logging
-        console.log(this.subscriber, " is trying unknown " + action.toString())
+        console.warn(this.sub, " is trying unknown " + action.toString())
         // 501 "Not Implemented"
-        this.Response.setStatus(501)
+        responseMessage.setStatus(501, `Unknown action: ${action}`)
       }
     }
+
+    return responseMessage
   }
 
 }
