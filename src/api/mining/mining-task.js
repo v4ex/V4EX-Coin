@@ -1,6 +1,6 @@
 import Mining from '../mining.js'
 
-import Utils from '../../utils/utils.js'
+import Utilities from '../../utilities/utilities.js'
 
 import SchemasService from '../../services/schemas-service.js'
 
@@ -125,7 +125,7 @@ export default class MiningTask {
   async initialize(callback) {
     try {
       // Random Id
-      this.#id = await Utils.randomId()
+      this.#id = await Utilities.randomId()
 
       this.#timestampInitialized = Date.now()
 
