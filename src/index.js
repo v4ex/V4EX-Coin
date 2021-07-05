@@ -3,7 +3,7 @@ import AuthService from './services/auth-service.js'
 //
 import Mining from './api/mining.js'
 import Minting from './api/minting.js'
-import Serving from './api/serving.js'
+import Brokering from './api/brokering.js'
 
 //
 import miningTaskSchema from './services/schemas-service/mining-task.json'
@@ -18,7 +18,7 @@ const Schemas = {
 export {
   Mining,
   Minting,
-  Serving
+  Brokering
 }
 
 // Default Handler class of "modules" format
@@ -78,10 +78,10 @@ export default {
       stub = await env.MINING.get(id)
     }
 
-    // wss://${hostname}/serving?sub=${sub}
-    if (Url.pathname.startsWith('/serving')) {
-      id = env.SERVING.idFromName(sub)
-      stub = await env.SERVING.get(id)
+    // wss://${hostname}/brokering?sub=${sub}
+    if (Url.pathname.startsWith('/brokering')) {
+      id = env.BROKERING.idFromName(sub)
+      stub = await env.BROKERING.get(id)
     }
 
     // wss://${hostname}/minting?sub=${sub}

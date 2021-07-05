@@ -4,7 +4,7 @@ import * as _ from 'lodash'
 export default class AuthService {
   // User roles
   static ROLE_MINER = 'miner'
-  static ROLE_SERVER = 'server'
+  static ROLE_BROKER = 'broker'
   static ROLE_MINTER = 'minter'
 
   // Class private members
@@ -96,8 +96,8 @@ export default class AuthService {
       if (_.find(this.#roles, { id: this.#env.AUTH0_MINER_ROLE_ID })) {
         this.#userInfo.roles.push('miner')
       }
-      if (_.find(this.#roles, { id: this.#env.AUTH0_SERVER_ROLE_ID })) {
-        this.#userInfo.roles.push('server')
+      if (_.find(this.#roles, { id: this.#env.AUTH0_BROKER_ROLE_ID })) {
+        this.#userInfo.roles.push('broker')
       }
       if (_.find(this.#roles, { id: this.#env.AUTH0_MINTER_ROLE_ID })) {
         this.#userInfo.roles.push('minter')
@@ -123,8 +123,8 @@ export default class AuthService {
     return this.#userInfo.roles.includes(AuthService.ROLE_MINER)
   }
 
-  isServer() {
-    return this.#userInfo.roles.includes(AuthService.ROLE_SERVER)
+  isBroker() {
+    return this.#userInfo.roles.includes(AuthService.ROLE_BROKER)
   }
 
   isMinter() {

@@ -1,14 +1,14 @@
 import Api from "./api.js"
 
-export default class Serving extends Api {
+export default class Brokering extends Api {
 
   async initialize() {
     await super.initialize()
 
-    this.bindingName = 'SERVING'
-    this.routePrefix = '/serving'
+    this.bindingName = 'BROKERING'
+    this.routePrefix = '/brokering'
 
-    this.userRoles = ['server']
+    this.userRoles = ['broker']
 
   }
 
