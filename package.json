@@ -15,6 +15,7 @@
   "license": "GPL-3.0",
   "devDependencies": {
     "ajv": "^8.6.0",
+    "auth0": "^2.35.1",
     "node-fetch": "^2.6.1",
     "prettier": "^1.19.1",
     "webpack": "^5.41.0",
