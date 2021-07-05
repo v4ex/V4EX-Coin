@@ -157,7 +157,7 @@ export default class Api {
 
       try {
         // Extract data from client message
-        const { accessToken, action, payload } = JSON.parse(data)
+        const { token: accessToken, action, payload } = JSON.parse(data)
         // DEBUG
         // console.debug("accessToken: ", accessToken)
         // console.debug("action: ", action)
