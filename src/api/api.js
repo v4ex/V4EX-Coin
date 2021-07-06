@@ -6,6 +6,10 @@ import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
 Status.getReasonPhrase = getReasonPhrase
 
+import ErrorApi from './error.js'
+// BUG
+// import DebugApi from './debug.js'
+
 // ============================================================================
 // WebSocket Message
 
@@ -30,7 +34,7 @@ class ResponseMessage {
 // Web Socket
 
 /**
- * @property {AuthService} Auth
+ * @property {AuthService} authService
  * @property {Request} Request Web request
  * @property {Url} Url Web request URL
  */
@@ -73,7 +77,7 @@ export default class Api {
   // ==========================================================================
   // Constructor and Initialize
 
-  constructor(state, env){
+  constructor(state, env) {
     // Durable Object
     this.State = state                // Durable Object state
     this.Storage = this.State.storage // Durable Object Storage
@@ -103,27 +107,39 @@ export default class Api {
 
   // Get userinfo from authenticated Auth0 user
   async auth(accessToken) {
-    await this.authService.auth(accessToken)
+    try {
+      await this.authService.auth(accessToken)
 
-    // Equal pass value AuthServie authentication status
-    // And check roles
-    this.pass = this.authService.isAuthenticated() && (this.userRoles.length === 0 || this.authService.hasRoles(this.userRoles))
+      // Equal pass value AuthServie authentication status
+      // And check roles
+      this.pass = this.authService.isAuthenticated() && (this.userRoles.length === 0 || this.authService.hasRoles(this.userRoles))
 
-    // DEBUG
-    // console.debug(this.Auth.userInfo())
+      // DEBUG
+      // console.debug(this.Auth.userInfo())
 
-    // Successful authenticated
-    if (this.pass) {
-      // Assign user sub
-      this.subscriber = this.authService.userInfo().sub
+      // Successful authenticated
+      if (this.pass) {
+        // Assign user sub
+        this.subscriber = this.authService.userInfo().sub
 
-      // Check Integrity of Durable Object
-      // This Durable Object is creating with sub as name to generate fixed Id
-      if (this.State.id.toString() != this.Env[this.bindingName].idFromName(this.subscriber).toString()) {
-        // DEBUG
-        // console.debug("Checking Durable Object integrity.")
-        this.pass = false
+        // Check Integrity of Durable Object
+        // This Durable Object is creating with sub as name to generate fixed Id
+        if (this.State.id.toString() != this.Env[this.bindingName].idFromName(this.subscriber).toString()) {
+          // DEBUG
+          // console.debug("Checking Durable Object integrity.")
+          this.pass = false
+        }
       }
+    } catch (error) {
+      await ErrorApi.captureError(this.Env, error)
+      // DebugApi.wsBroadcast(this.Env, "Debugging in Api::auth()")
+      // DebugApi.wsBroadcast(this.Env, error)
+
+      console.error("Authentication error: ", error.message);
+      console.error(error.stack);
+      
+      // DEBUG
+      // this.broadcast("Can not print errors to console.")
     }
   }
 
@@ -203,6 +219,10 @@ export default class Api {
 
   // ==========================================================================
   // 
+
+  // async debug(data) {
+  //   DebugApi.wsBroadcast(this.Env, data)
+  // }
 
   async fetch(request) {
     //

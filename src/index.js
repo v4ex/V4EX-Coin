@@ -4,6 +4,9 @@ import AuthService from './services/auth-service.js'
 import Mining from './api/mining.js'
 import Minting from './api/minting.js'
 import Brokering from './api/brokering.js'
+//
+import Error from './api/error.js'
+import Debug from './api/debug.js'
 
 //
 import miningTaskSchema from './services/schemas-service/mining-task.json'
@@ -11,18 +14,20 @@ import miningTaskWorkSchema from './services/schemas-service/mining-task-work.js
 
 const Schemas = {
   "mining-task": miningTaskSchema,
-  "mining-task-work": miningTaskWorkSchema
+  "mining-task-work": miningTaskWorkSchema,
 }
 
 // Export Durable Object classes
 export {
   Mining,
   Minting,
-  Brokering
+  Brokering,
+  Error,
+  Debug,
 }
 
 // Default Handler class of "modules" format
-export default {  
+export default {
   async fetch(request, env) {
 
     // DEBUG
@@ -88,6 +93,18 @@ export default {
     if (Url.pathname.startsWith('/minting')) {
       id = env.MINTING.idFromName(sub)
       stub = await env.MINTING.get(id)
+    }
+
+    // wss://${hostname}/error
+    if (Url.pathname.startsWith('/error')) {
+      id = env.ERROR.idFromName(sub)
+      stub = await env.ERROR.get(id)
+    }
+
+    // wss://${hostname}/debug
+    if (Url.pathname.startsWith('/debug')) {
+      id = env.DEBUG.idFromName(sub)
+      stub = await env.DEBUG.get(id)
     }
 
     let response = await stub.fetch(request)

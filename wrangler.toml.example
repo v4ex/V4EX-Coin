@@ -27,5 +27,7 @@ AUTH0_MINTER_ROLE_ID = ""
 bindings = [
   {name = "MINING", class_name = "Mining"},
   {name = "BROKERING", class_name = "Brokering"},
-  {name = "MINTING", class_name = "Minting"}
+  {name = "MINTING", class_name = "Minting"},
+  {name = "ERROR", class_name = "Error"},
+  {name = "DEBUG", class_name = "Debug"},
 ]

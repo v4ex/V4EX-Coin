@@ -1,5 +1,7 @@
+/bugs
 /build/*
 !/build/.gitkeep
+/data
 /dev
 /node_modules
 
