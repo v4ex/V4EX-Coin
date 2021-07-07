@@ -6,9 +6,11 @@ import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
 Status.getReasonPhrase = getReasonPhrase
 
+// ISSUE Build successfully but Error happen immediately on Cloudflare Workers
+// import Debug from './debug.js'
+
 import ErrorApi from './error.js'
-// BUG
-// import DebugApi from './debug.js'
+
 
 // ============================================================================
 // WebSocket Message
@@ -51,12 +53,13 @@ export default class Api {
   /**
    * Override this method to handle web socket messages
    * 
-   * @param {String} action 
+   * @param {string} action 
    * @param {*} payload 
-   * @param {ResponseMessage} responseMessage 
+   * @param {ResponseMessage} responseMessage
+   * @param {string} Token
    * @returns 
    */
-  async actionRoutes(action, payload, responseMessage) {
+  async actionRoutes(action, payload, responseMessage, token) {
     switch (action) {
       case 'DEFAULT': {
         // 200 "OK"
@@ -112,7 +115,8 @@ export default class Api {
 
       // Equal pass value AuthServie authentication status
       // And check roles
-      this.pass = this.authService.isAuthenticated() && (this.userRoles.length === 0 || this.authService.hasRoles(this.userRoles))
+      // this.pass = this.authService.isAuthenticated() && (this.userRoles.length === 0 || this.authService.hasRoles(this.userRoles))
+      this.pass = this.authService.isAuthenticated()
 
       // DEBUG
       // console.debug(this.Auth.userInfo())
@@ -122,13 +126,14 @@ export default class Api {
         // Assign user sub
         this.subscriber = this.authService.userInfo().sub
 
+        // TODO Allow reigistered brokers to operate
         // Check Integrity of Durable Object
         // This Durable Object is creating with sub as name to generate fixed Id
-        if (this.State.id.toString() != this.Env[this.bindingName].idFromName(this.subscriber).toString()) {
-          // DEBUG
-          // console.debug("Checking Durable Object integrity.")
-          this.pass = false
-        }
+        // if (this.State.id.toString() != this.Env[this.bindingName].idFromName(this.subscriber).toString()) {
+        //   // DEBUG
+        //   // console.debug("Checking Durable Object integrity.")
+        //   this.pass = false
+        // }
       }
     } catch (error) {
       await ErrorApi.captureError(this.Env, error)
@@ -173,14 +178,14 @@ export default class Api {
 
       try {
         // Extract data from client message
-        const { token: accessToken, action, payload } = JSON.parse(data)
+        const { token, action, payload } = JSON.parse(data)
         // DEBUG
-        // console.debug("accessToken: ", accessToken)
+        // console.debug("token: ", token)
         // console.debug("action: ", action)
         // console.debug("payload: ", payload)
 
         // Authentication
-        await this.auth(accessToken)
+        await this.auth(token)
 
         // Disallow
         if (!this.pass) {
@@ -190,7 +195,7 @@ export default class Api {
           }
         } else { // Allow
           // ActionRoutes callback
-          responseMessage = await this.actionRoutes(action.toString(), payload, responseMessage)
+          responseMessage = await this.actionRoutes(action.toString(), payload, responseMessage, token)
         }
       } catch (error) {
         // Error
@@ -201,6 +206,9 @@ export default class Api {
           // 500 "Internal Server Error"
           responseMessage.setStatus(500)
         }
+
+        await ErrorApi.captureError(this.Env, error)
+
       } finally { // Finally send the constructed response to client.
         // DEBUG
         // console.debug(responseMessage)

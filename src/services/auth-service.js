@@ -4,7 +4,7 @@ import Jwt from '../utilities/jwt-rs256.js';
 
 import ErrorApi from '../api/error.js'
 
-import DebugApi from '../api/debug.js'
+import Debug from '../api/debug.js'
 
 
 class AuthenticationError extends Error {}
@@ -40,7 +40,7 @@ export default class AuthService {
   }
 
   async debug(data) {
-    DebugApi.wsBroadcast(this.#env, data)
+    await Debug.wsBroadcast(this.#env, data)
   }
 
   // IMPORTANT
@@ -58,6 +58,7 @@ export default class AuthService {
       // Auth0 Authentication Token
       if (accessToken.length <= 32) {
 
+        this.debug("Auth0 Authentication API")
         console.debug("Auth0 Authentication API")
 
         // Connect to Auth0 Authentication API to get userinfo
@@ -92,7 +93,8 @@ export default class AuthService {
         }
 
       } else { // Assuming JWT
-        // console.debug("Verify JWT.")
+        console.debug("Verify JWT.")
+        this.debug("Verify JWT.")
 
         let clientId = await Jwt.validate(this.#accessToken, JSON.parse(this.#env.AUTH0_JWK))
 
@@ -131,6 +133,7 @@ export default class AuthService {
       }
 
     } else { // Already authenticated
+      // ISSUE Not working as expected
       // Changed accessToken
       if (accessToken != this.#accessToken) {
 

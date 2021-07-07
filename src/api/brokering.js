@@ -1,4 +1,9 @@
-import Api from "./api.js"
+import Api from './api.js'
+
+import Mining from './mining.js'
+import Debug from './debug.js'
+
+import _ from '../utilities/index.js'
 
 export default class Brokering extends Api {
 
@@ -12,10 +17,48 @@ export default class Brokering extends Api {
 
   }
 
-  async actionRoutes(action, payload, responseMessage) {
+  async actionRoutes(action, payload, responseMessage, token) {
     switch (action) {
       // TODO
       case 'HELP': {
+        // 501 "Not Implemented"
+        responseMessage.setStatus(501)
+        break
+      }
+      // IN_PROGRESS
+      case 'VIEW': {
+        // Input
+        //   - user
+        const { user } = payload
+        
+        let id = this.Env.MINING.idFromName(user)
+        let stub = await this.Env.MINING.get(id)
+
+        let miningTaskResonse = await stub.fetch(new Request(`/${Mining.MINING_TASK}`, {
+          headers: {
+            authorization: 'bearer ' + token
+          }
+        }))
+
+        await Debug.wsBroadcast(this.Env, miningTaskResonse)
+
+        if (miningTaskResonse.status == 200) {
+          let miningTask = await miningTaskResonse.json()
+
+          await Debug.wsBroadcast(this.Env, miningTask)
+
+          if (!_.isEmpty(miningTask)) {
+            responseMessage.setStatus(200) // "OK"
+            responseMessage.payload.miningTask = miningTask
+          }
+        } else {
+          responseMessage.setStatus(404) // "NOT FOUND"
+        }
+
+        break
+      }
+      // TODO
+      case 'PROGRESS': {
         // 501 "Not Implemented"
         responseMessage.setStatus(501)
         break

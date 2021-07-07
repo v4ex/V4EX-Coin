@@ -1,3 +1,5 @@
+import _ from './utilities/index.js'
+
 import AuthService from './services/auth-service.js'
 
 //
@@ -44,10 +46,7 @@ export default {
       // Two cases
       // 1. accessToken sent from headers
       // authorization : bearer ${accessToken}
-      let accessToken
-      if (request.headers.get('authorization')) {
-        accessToken = request.headers.get('authorization').split(' ')[1]
-      }
+      let accessToken = _.getAuthorizationBearerFromRequest(request)
       if (accessToken) {
         await Auth.auth(accessToken)
         if (Auth.isAuthenticated()) {
