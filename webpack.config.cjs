@@ -1,4 +1,5 @@
-const path = require('path')
+const path = require('path');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
   entry: './src/index.js',
@@ -17,4 +18,7 @@ module.exports = {
     libraryTarget: 'module',
     sourceMapFilename: 'worker.mjs.map',
   },
-}
+  plugins: [
+    new Dotenv(),
+  ],
+};

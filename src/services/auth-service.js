@@ -2,6 +2,10 @@ import _ from '../utilities/index.js'
 
 import Jwt from '../utilities/jwt-rs256.js';
 
+import Auth0UserProxy from '../proxies/auth0-user-proxy.js';
+
+import Auth0Proxy from '../proxies/auth0-proxy.js'; 
+
 import ErrorApi from '../api/error.js'
 
 import Debug from '../api/debug.js'
@@ -29,6 +33,9 @@ export default class AuthService {
   }
   #roles = [] // Array of role objects
 
+  #auth0UserProxy
+  #auth0Proxy
+
   constructor(env) {
     this.#env = env
     this.#auth0Endpoints.userRoles = () => {
@@ -37,6 +44,9 @@ export default class AuthService {
     this.#auth0Endpoints.userInfo2 = () => {
       return `https://v4ex.us.auth0.com/api/v2/users/${encodeURIComponent(this.#sub)}`
     }
+
+    this.#auth0UserProxy = new Auth0UserProxy()
+    this.#auth0Proxy = new Auth0Proxy(env.AUTH0_ACCESS_TOKEN)
   }
 
   async debug(data) {
@@ -61,34 +71,12 @@ export default class AuthService {
         this.debug("Auth0 Authentication API")
         console.debug("Auth0 Authentication API")
 
-        // Connect to Auth0 Authentication API to get userinfo
-        let userInfoResponse = await fetch(this.#auth0Endpoints.userInfo, {
-          method: 'GET',
-          headers: {
-            authorization: "bearer " + accessToken
-          }
-        })
-
-        // Successful response
-        if (userInfoResponse.status == 200) {
-          let userInfo = await userInfoResponse.json()
-          
-          // DEBUG
-          // console.debug(userInfo)
-
-          this.#userInfo = _.merge(userInfo, this.#userInfo)
-          
-          // DEPRECATED Get user sub from Auth0 instead
-          // // Check sub integrity
-          // if (this.#userInfo.sub === this.#sub) {
-          //   this.#isAuthenticated = true
-          // }
-          if (this.#sub = this.#userInfo.sub) {
-            this.#isAuthenticated = true
-          }
-        } else { // Unauthorized
+        let userInfo = await this.#auth0UserProxy.user(accessToken)
+        this.#userInfo = _.merge(userInfo, this.#userInfo)
+        if (this.#sub = this.#userInfo.sub) {
+          this.#isAuthenticated = true
+        } else { // Unauthenticated
           await ErrorApi.captureError(this.#env, Error("Throwing error for Failed to get user info."))
-
           throw new AuthenticationError("Failed to get user info.")
         }
 
@@ -101,28 +89,15 @@ export default class AuthService {
         if (clientId) {
           this.#sub = JSON.parse(this.#env.BROKERS)[clientId]
 
-          // DebugApi.wsBroadcast(this.#env, {
-          //   clientId,
-          //   sub: this.#sub
-          // })
-
-          let userInfoResponse = await fetch(this.#auth0Endpoints.userInfo2(), {
-            method: 'GET',
-            headers: {
-              authorization: "bearer " + this.#env.AUTH0_ACCESS_TOKEN
-            }
-          })
-
-          if (userInfoResponse.status == 200) {
-            let userInfo = await userInfoResponse.json()
+          let userInfo = await this.#auth0Proxy.user(this.#sub)
+          if (userInfo) {
             userInfo.sub = this.#sub
-
             this.#userInfo = _.merge(userInfo, this.#userInfo)
-  
             this.#isAuthenticated = true
           } else {
             await ErrorApi.captureError(this.#env, Error("Throwing error for Failed to get user info."))
           }
+
         }
       }
 
