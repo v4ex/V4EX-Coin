@@ -9,7 +9,7 @@ Status.getReasonPhrase = getReasonPhrase
 // ISSUE Build successfully but Error happen immediately on Cloudflare Workers
 // import Debug from './debug.js'
 
-import ErrorApi from './error.js'
+// import ErrorApi from './error.js'
 
 
 // ============================================================================
@@ -46,7 +46,7 @@ export default class Api {
   // Customization
 
   // Override initialize() to set them.
-  bindingName    // Binding name setted in wrangler.toml
+  bindingName    // Binding name set in wrangler.toml
   routePrefix    // Request route prefix e.g. '/example'
   userRoles = [] // User roles
 
@@ -56,7 +56,7 @@ export default class Api {
    * @param {string} action 
    * @param {*} payload 
    * @param {ResponseMessage} responseMessage
-   * @param {string} Token
+   * @param {string} token
    * @returns 
    */
   async actionRoutes(action, payload, responseMessage, token) {
@@ -68,7 +68,7 @@ export default class Api {
       }
       default: {
         // Logging
-        console.warn(this.sub, " is trying unknown " + action.toString())
+        console.warn("User is trying unknown action: " + action.toString())
         // 501 "Not Implemented"
         responseMessage.setStatus(501, `Unknown action: ${action}`)
       }
@@ -113,7 +113,7 @@ export default class Api {
     try {
       await this.authService.auth(accessToken)
 
-      // Equal pass value AuthServie authentication status
+      // Equal pass value AuthService authentication status
       // And check roles
       // this.pass = this.authService.isAuthenticated() && (this.userRoles.length === 0 || this.authService.hasRoles(this.userRoles))
       this.pass = this.authService.isAuthenticated()
@@ -126,7 +126,7 @@ export default class Api {
         // Assign user sub
         this.subscriber = this.authService.userInfo().sub
 
-        // TODO Allow reigistered brokers to operate
+        // TODO Allow registered brokers to operate
         // Check Integrity of Durable Object
         // This Durable Object is creating with sub as name to generate fixed Id
         // if (this.State.id.toString() != this.Env[this.bindingName].idFromName(this.subscriber).toString()) {
@@ -136,7 +136,7 @@ export default class Api {
         // }
       }
     } catch (error) {
-      await ErrorApi.captureError(this.Env, error)
+      // await ErrorApi.captureError(this.Env, error)
       // DebugApi.wsBroadcast(this.Env, "Debugging in Api::auth()")
       // DebugApi.wsBroadcast(this.Env, error)
 
@@ -207,7 +207,7 @@ export default class Api {
           responseMessage.setStatus(500)
         }
 
-        await ErrorApi.captureError(this.Env, error)
+        // await ErrorApi.captureError(this.Env, error)
 
       } finally { // Finally send the constructed response to client.
         // DEBUG

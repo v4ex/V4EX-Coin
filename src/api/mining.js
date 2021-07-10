@@ -4,7 +4,7 @@ import Api from "./api.js"
 
 import MiningTask from './mining/mining-task.js'
 
-import Debug from './debug.js'
+// import Debug from './debug.js'
 
 
 export default class Mining extends Api {
@@ -29,18 +29,19 @@ export default class Mining extends Api {
   }
 
   // Get according Mining Task
-  static async getMiningTask(env, sub) {
-    let id = env.ERROR.idFromName(sub)
-    let stub = await env.ERROR.get(id)
+  
+  // static async getMiningTask(env, sub) {
+  //   let id = env.ERROR.idFromName(sub)
+  //   let stub = await env.ERROR.get(id)
 
-    let request = new Request('/' + Mining.MINING_TASK, {
-      method: 'GET',
-    })
+  //   let request = new Request('/' + Mining.MINING_TASK, {
+  //     method: 'GET',
+  //   })
 
-    let response = await stub.fetch(request)
+  //   let response = await stub.fetch(request)
 
-    return await response.json()
-  }
+  //   return await response.json()
+  // }
 
 
   async actionRoutes(action, payload, responseMessage) {
@@ -222,7 +223,7 @@ export default class Mining extends Api {
         if (this.pass) {
           await this.initializeMiningTask()
 
-          await Debug.wsBroadcast(this.Env, this.miningTask)
+          // await Debug.wsBroadcast(this.Env, this.miningTask)
 
           return new Response(JSON.stringify(this.miningTask.clone()), { status: 200 })
         }

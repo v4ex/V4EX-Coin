@@ -34,16 +34,16 @@ export default class Brokering extends Api {
         let id = this.Env.MINING.idFromName(user)
         let stub = await this.Env.MINING.get(id)
 
-        let miningTaskResonse = await stub.fetch(new Request(`/${Mining.MINING_TASK}`, {
+        let miningTaskResponse = await stub.fetch(new Request(`/${Mining.MINING_TASK}`, {
           headers: {
             authorization: 'bearer ' + token
           }
         }))
 
-        await Debug.wsBroadcast(this.Env, miningTaskResonse)
+        await Debug.wsBroadcast(this.Env, miningTaskResponse)
 
-        if (miningTaskResonse.status == 200) {
-          let miningTask = await miningTaskResonse.json()
+        if (miningTaskResponse.status == 200) {
+          let miningTask = await miningTaskResponse.json()
 
           await Debug.wsBroadcast(this.Env, miningTask)
 

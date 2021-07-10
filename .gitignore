@@ -1,9 +1,11 @@
+/.idea
 /bugs
 /build/*
 !/build/.gitkeep
 /data
 /dev
 /node_modules
+/src/controllers/dev-controller.js
 
 .env
 wrangler.toml

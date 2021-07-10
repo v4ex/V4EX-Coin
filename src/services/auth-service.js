@@ -6,9 +6,9 @@ import Auth0UserProxy from '../proxies/auth0-user-proxy.js';
 
 import Auth0Proxy from '../proxies/auth0-proxy.js'; 
 
-import ErrorApi from '../api/error.js'
+// import ErrorApi from '../api/error.js'
 
-import Debug from '../api/debug.js'
+// import Debug from '../api/debug.js'
 
 
 class AuthenticationError extends Error {}
@@ -50,7 +50,7 @@ export default class AuthService {
   }
 
   async debug(data) {
-    await Debug.wsBroadcast(this.#env, data)
+    // await Debug.wsBroadcast(this.#env, data)
   }
 
   // IMPORTANT
@@ -59,7 +59,7 @@ export default class AuthService {
 
     // console.debug("AuthService.auth()")
     // this.#sendToError("AuthService.auth()")
-    await this.debug("AuthService.auth()")
+    // await this.debug("AuthService.auth()")
 
     // Not yet authenticated
     if (!this.#isAuthenticated) {
@@ -76,7 +76,7 @@ export default class AuthService {
         if (this.#sub = this.#userInfo.sub) {
           this.#isAuthenticated = true
         } else { // Unauthenticated
-          await ErrorApi.captureError(this.#env, Error("Throwing error for Failed to get user info."))
+          // await ErrorApi.captureError(this.#env, Error("Throwing error for Failed to get user info."))
           throw new AuthenticationError("Failed to get user info.")
         }
 
@@ -95,7 +95,7 @@ export default class AuthService {
             this.#userInfo = _.merge(userInfo, this.#userInfo)
             this.#isAuthenticated = true
           } else {
-            await ErrorApi.captureError(this.#env, Error("Throwing error for Failed to get user info."))
+            // await ErrorApi.captureError(this.#env, Error("Throwing error for Failed to get user info."))
           }
 
         }
@@ -145,7 +145,7 @@ export default class AuthService {
         this.#userInfo.roles.push('minter')
       }
     } else { // Unauthorized
-      await ErrorApi.captureError(this.#env, new Error("Throwing error for Failed to collect user roles information."))
+      // await ErrorApi.captureError(this.#env, new Error("Throwing error for Failed to collect user roles information."))
       throw new AuthenticationError("Failed to collect user roles information.")
     }
     

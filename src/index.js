@@ -1,113 +1,60 @@
-import _ from './utilities/index.js'
+// import DevController from './controllers/dev-controller.js'
 
-import AuthService from './services/auth-service.js'
+import RootController from './controllers/root-controller.js'
+import SchemaController from './controllers/schema-controller.js'
 
-//
+import WebSocketController from './controllers/web-socket-controller.js'
+
 import Mining from './api/mining.js'
-import Minting from './api/minting.js'
-import Brokering from './api/brokering.js'
-//
-import Error from './api/error.js'
-import Debug from './api/debug.js'
 
-//
-import miningTaskSchema from './services/schemas-service/mining-task.json'
-import miningTaskWorkSchema from './services/schemas-service/mining-task-work.json'
-
-const Schemas = {
-  "mining-task": miningTaskSchema,
-  "mining-task-work": miningTaskWorkSchema,
-}
-
-// Export Durable Object classes
 export {
-  Mining,
-  Minting,
-  Brokering,
-  Error,
-  Debug,
+  Mining
 }
+
 
 // Default Handler class of "modules" format
 export default {
   async fetch(request, env) {
 
-    // DEBUG
-    // console.log('Hello from Cloudflare Workers')
+    // ========================================================================
+    // Handle dev request
 
-    const Url = new URL(request.url)
-
-    // Initialize Auth
-    const Auth = new AuthService(env)
+    // const devController = new DevController(request, env)
+    // if (devController.canHandle) {
+    //   return devController.handleRequest()
+    // }
 
     // ========================================================================
     // Handle root request
-    if (Url.pathname == '/') {
-      // Two cases
-      // 1. accessToken sent from headers
-      // authorization : bearer ${accessToken}
-      let accessToken = _.getAuthorizationBearerFromRequest(request)
-      if (accessToken) {
-        await Auth.auth(accessToken)
-        if (Auth.isAuthenticated()) {
-          // DEBUG
-          // console.log(Auth.userInfo())
-          return new Response(JSON.stringify(Auth.userInfo()), { status: 200 });
-        }
-      }
-      // 2. accessToken not provided
-      return new Response("V4EX Coin", { status: 200 });
+    
+    const indexController = new RootController(request, env)
+    if (indexController.canHandle) {
+      return indexController.handleRequest()
     }
 
     // ========================================================================
     // Handle Schema request
-    if (Url.pathname.startsWith('/schema/')) {
-      const schema = Url.pathname.split('/')[2]
-      if (schema) {
-        return new Response(JSON.stringify(Schemas[schema]), { status: 200 })
-      }
+
+    const schemaController = new SchemaController(request, env)
+    if (schemaController.canHandle) {
+      return schemaController.handleRequest()
     }
 
     // ========================================================================
     // Durable Object Websocket
 
     // ?sub=${sub}
-    let sub = Url.searchParams.get('sub') ?? 'V4EX'
+    // let sub = Url.searchParams.get('sub') ?? 'V4EX'
 
-    let id, stub
-
-    // wss://${hostname}/mining?sub=${sub}
-    if (Url.pathname.startsWith('/mining')) {
-      id = env.MINING.idFromName(sub)
-      stub = await env.MINING.get(id)
+    const webSocketController = new WebSocketController(request, env)
+    if (webSocketController.canHandle) {
+      return webSocketController.handleRequest()
     }
 
-    // wss://${hostname}/brokering?sub=${sub}
-    if (Url.pathname.startsWith('/brokering')) {
-      id = env.BROKERING.idFromName(sub)
-      stub = await env.BROKERING.get(id)
-    }
+    // ========================================================================
+    // Fallback
 
-    // wss://${hostname}/minting?sub=${sub}
-    if (Url.pathname.startsWith('/minting')) {
-      id = env.MINTING.idFromName(sub)
-      stub = await env.MINTING.get(id)
-    }
+    return new Response("Not Found", { status: 404 })
 
-    // wss://${hostname}/error
-    if (Url.pathname.startsWith('/error')) {
-      id = env.ERROR.idFromName(sub)
-      stub = await env.ERROR.get(id)
-    }
-
-    // wss://${hostname}/debug
-    if (Url.pathname.startsWith('/debug')) {
-      id = env.DEBUG.idFromName(sub)
-      stub = await env.DEBUG.get(id)
-    }
-
-    let response = await stub.fetch(request)
-
-    return response
   }
 }

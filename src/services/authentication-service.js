@@ -25,14 +25,16 @@ export default class AuthenticationService {
 
   /**
    * 
-   * @param {string} token Management API token
+   * @param {string} managementToken Management API token
    */
-  constructor(token) {
-    this.#auth0Proxy = new Auth0Proxy(token)
+  constructor(managementToken) {
+    this.#auth0Proxy = new Auth0Proxy(managementToken)
     this.#auth0UserProxy = new Auth0UserProxy()
   }
 
   /**
+   * TODO Handle errors
+   * 
    * 
    * @param {string} token User token
    * @returns 
