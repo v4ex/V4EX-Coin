@@ -1,6 +1,7 @@
 // Durable Object with Web Socket and Auth features
 
 import AuthenticationService from '../services/authentication-service.js'
+import AuthorizationService from '../services/authorization-service.js'
 
 import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
@@ -29,6 +30,8 @@ class ResponseMessage {
 // Web Socket Server implementation
 // Cloudflare Workers Durable Object
 // Handle multiple client sessions.
+// Handle single resource CRUD.
+// Handle multiple resources CRUD.
 
 export default class WebSocketServer {
 
@@ -48,7 +51,7 @@ export default class WebSocketServer {
   /**
    * Override this method to handle web socket messages
    * 
-   * AVAILABLE this.authenticationService.user if authenticated
+   * AVAILABLE this.authenticationService.user if successfully authenticated
    * 
    * @param {User} user
    * @param {string} action 
@@ -75,7 +78,7 @@ export default class WebSocketServer {
   // ==========================================================================
   // Constructor and Initialize
 
-  // USE AUTH0_MANAGEMENT_TOKEN
+  // ENV AUTH0_MANAGEMENT_TOKEN
   // PROVIDE this.state
   // PROVIDE this.storage
   // PROVIDE this.env
@@ -90,8 +93,8 @@ export default class WebSocketServer {
     this.sessions = [] // Web socket sessions
     // Authentication
     this.authenticationService = new AuthenticationService(env.AUTH0_MANAGEMENT_TOKEN) // Authentication service
-    // TODO Authorization
-
+    // Authorization
+    this.authorizationService = new AuthorizationService()  // Authorization service
   }
 
   // Available before initialize()
@@ -123,7 +126,7 @@ export default class WebSocketServer {
     })
   }
 
-  // USE AUTH0_MANAGEMENT_TOKEN
+  // ENV AUTH0_MANAGEMENT_TOKEN
   // PROVIDE this.userToken
   // CHANGE this.authenticationService
   async handleSession(webSocket) {

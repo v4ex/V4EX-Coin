@@ -1,16 +1,20 @@
-import Action from '../action.js'
+import Action from './action.js'
 
 export default class ViewAction extends Action {
-  async do() {
-    const miningTask = this.webSocketServer.miningTask
-    const responseMessage = this.responseMessage
 
+  // CHANGE this.responseMessage
+  async do() {
+    if (!this.isAllowed) {
+      this.disallow()
+      return
+    }
+    
+    const miningTask = this.resource
+    const responseMessage = this.responseMessage
     if (miningTask.isInitialized) {
-      // 200 "OK"
-      responseMessage.setStatus(200, "Returning the initialized Mining Task.")
+      responseMessage.setStatus(200, "Returning the initialized Mining Task.") // "OK"
     } else {
-      // 206 "Partial Content"
-      responseMessage.setStatus(206, "Mining Task is not yet initialized. Use INITIALIZE.")
+      responseMessage.setStatus(206, "Mining Task is not yet initialized. Use INITIALIZE.") // "Partial Content"
     }
 
     // Add data to payload
@@ -18,4 +22,5 @@ export default class ViewAction extends Action {
       responseMessage.payload.miningTask = miningTask.clone
     }
   }
+
 }

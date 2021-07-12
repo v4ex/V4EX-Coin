@@ -5,6 +5,7 @@ export default class UserFactory {
 
   #auth0Proxy
 
+  // PROVIDE this.#auth0Proxy
   constructor(token) {
     this.#auth0Proxy = new Auth0Proxy(token)
   }
@@ -13,6 +14,7 @@ export default class UserFactory {
     const user = await this.#auth0Proxy.user(userId)
 
     if (user) {
+      user.id = user.user_id
       return new User(user)
     }
     return undefined

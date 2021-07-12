@@ -1,30 +1,34 @@
-import Action from '../action.js'
+import Action from './action.js'
 
 export default class SubmitAction extends Action {
+
+  // CHANGE this.resource | this.webSocketServer.miningTask -> this.webSocketServer.miningTask.#work
+  // CHANGE this.responseMessage
   async do() {
-    const miningTask = this.webSocketServer.miningTask
+    if (!this.isAllowed) {
+      this.disallow()
+      return
+    }
+
+    const miningTask = this.resource
     const responseMessage = this.responseMessage
     const payload = this.payload
 
     // Only allow resubmit if not proceeded
     if (miningTask.isSubmitted) { // Submitted
       if (miningTask.isProceeded) { // Submitted and proceeded
-        // 409 "Conflict";
-        responseMessage.setStatus(409, "RESUBMIT is disallowed. Mining task has been already proceeded.")
+        responseMessage.setStatus(409, "RESUBMIT is disallowed. Mining task has been already proceeded.") // "Conflict"
       } else { // Submitted, but not yet proceeded
         // TODO Check if the same content
         let submitted = await miningTask.submit(payload.work)                
         if (submitted) {
-          // 200 'OK'
-          responseMessage.setStatus(200, "Resubmitted work information has overridden previous one.")
+          responseMessage.setStatus(200, "Resubmitted work information has overridden previous one.") // "OK"
         } else {
-          // 406 "Not Acceptable"
-          responseMessage.setStatus(406, "Resubmitted work details has failed in verification.")
+          responseMessage.setStatus(406, "Resubmitted work details has failed in verification.") // "Not Acceptable"
         }
       }
     } else { // Not yet submitted
-      // 409 "Conflict"
-      responseMessage.setStatus(409, "RESUBMIT is disallowed. Work information is not yet existed, SUBMIT can create it.")
+      responseMessage.setStatus(409, "RESUBMIT is disallowed. Work information is not yet existed, SUBMIT can create it.") // "Conflict"
     }
 
     // Attach payload
@@ -33,4 +37,5 @@ export default class SubmitAction extends Action {
     }
 
   }
+
 }

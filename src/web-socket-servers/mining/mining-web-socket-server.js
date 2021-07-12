@@ -31,6 +31,7 @@ export default class MiningWebSocketServer extends WebSocketServer {
     return '/mining'
   }
 
+  // CHANGE this.miningTask
   async initialize() {
     await super.initialize()
 
@@ -38,12 +39,15 @@ export default class MiningWebSocketServer extends WebSocketServer {
     this.initializeMiningTask()
   }
 
+  // PROVIDE this.miningTask
   async initializeMiningTask() {
     const storedMiningTask = await this.storage.get(MiningWebSocketServer.MINING_TASK)
-    // VULNERABILITY Pass proxied storage instead of storage
+    // VULNERABILITY SHOULD Pass proxy storage instead of storage
     this.miningTask = new MiningTask(storedMiningTask ?? { sub: this.sub }, this.storage)
   }
 
+  // CHANGE this.authenticationService
+  // CHANGE this.miningTask
   /**
    * Override this method to handle web socket messages
    * 
@@ -53,51 +57,52 @@ export default class MiningWebSocketServer extends WebSocketServer {
    * @param {User} user
    * @returns 
    */
-     async actionRoutes(user, action, payload, responseMessage) {
-      switch (action) {
-        case 'DEFAULT': {
-          responseMessage.setStatus(200) // "OK"
+  async actionRoutes(user, action, payload, responseMessage) {
+    switch (action) {
+      case 'DEFAULT': {
+        responseMessage.setStatus(200) // "OK"
 
-          break
-        }
-        case 'VIEW': {
-          const viewAction = new ViewAction(this, user, payload, responseMessage)
-          await viewAction.do()
-
-          break
-        }
-        case 'INITIALIZE': {
-          const initializeAction = new InitializeAction(this, user, payload, responseMessage)
-          await initializeAction.do()
-
-          break
-        }
-        case 'SUBMIT': {
-          const initializeAction = new SubmitAction(this, user, payload, responseMessage)
-          await initializeAction.do()
-
-          break
-        }
-        case 'RESUBMIT': {
-          const initializeAction = new ResubmitAction(this, user, payload, responseMessage)
-          await initializeAction.do()
-
-          break
-        }
-        case 'RESET': {
-          const initializeAction = new ResetAction(this, user, payload, responseMessage)
-          await initializeAction.do()
-
-          break
-        }
-        default: {
-          // Logging
-          console.warn("User is trying unknown action: " + action.toString())
-
-          responseMessage.setStatus(501, `Unknown action: ${action}`) // "Not Implemented"
-        }
+        break
       }
-  
-      return responseMessage
+      case 'VIEW': {
+        const viewAction = new ViewAction(this, this.miningTask, user, payload, responseMessage)
+        await viewAction.do()
+
+        break
+      }
+      case 'INITIALIZE': {
+        const initializeAction = new InitializeAction(this, this.miningTask, user, payload, responseMessage)
+        await initializeAction.do()
+
+        break
+      }
+      case 'SUBMIT': {
+        const initializeAction = new SubmitAction(this, this.miningTask, user, payload, responseMessage)
+        await initializeAction.do()
+
+        break
+      }
+      case 'RESUBMIT': {
+        const initializeAction = new ResubmitAction(this, this.miningTask, user, payload, responseMessage)
+        await initializeAction.do()
+
+        break
+      }
+      case 'RESET': {
+        const initializeAction = new ResetAction(this, this.miningTask, user, payload, responseMessage)
+        await initializeAction.do()
+
+        break
+      }
+      default: {
+        // Logging
+        console.warn("User is trying unknown action: " + action.toString())
+
+        responseMessage.setStatus(501, `Unknown action: ${action}`) // "Not Implemented"
+      }
     }
+
+    return responseMessage
+  }
+
 }

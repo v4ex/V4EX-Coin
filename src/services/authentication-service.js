@@ -23,6 +23,8 @@ export default class AuthenticationService {
   #isAuthenticated
   #user
 
+  // PROVIDE this.#auth0Proxy
+  // PROVIDE this.#auth0UserProxy
   /**
    * 
    * @param {string} managementToken Management API token
@@ -32,9 +34,10 @@ export default class AuthenticationService {
     this.#auth0UserProxy = new Auth0UserProxy()
   }
 
+  // PROVIDE this.#user
+  // CHANGE this.#isAuthenticated
   /**
    * TODO Handle errors
-   * 
    * 
    * @param {string} token User token
    * @returns 
@@ -58,6 +61,7 @@ export default class AuthenticationService {
         const userInfo2 = await this.#auth0Proxy.user(userInfo.sub)
         if (userInfo2) {
           this.#isAuthenticated = true
+          userInfo2.id = userInfo2.user_id
           this.#user = new User(userInfo2)
         }
       }
@@ -68,6 +72,7 @@ export default class AuthenticationService {
         const userInfo = await this.#auth0Proxy.user(userId)
         if (userInfo) {
           this.#isAuthenticated = true
+          userInfo.id = userInfo.user_id
           this.#user = new User(userInfo)
         }
       }

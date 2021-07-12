@@ -3,16 +3,19 @@ import { default as Mining } from './mining-web-socket-server.js'
 import Utilities from '../../utilities/utilities.js'
 
 import SchemasService from '../../services/schemas-service.js'
+import { Ownable } from '../../models/ownable.js'
 
 
 // Value type
 // Stored in Miner Durable Object
 
+// FIXME Use ownId instead of sub
+
 /**
  * @typedef MiningTask
  * @type {object}
  */
-export default class MiningTask {
+export default class MiningTask extends Ownable {
   // Private
   #storage
 
@@ -30,6 +33,8 @@ export default class MiningTask {
   #work
 
   constructor({id, sub, timestampInitialized, timestampCommited, timestampSubmitted, timestampResubmitted, timestampProceeded, timestampConfirmed, work}, storage) {
+    super()
+
     // Durable Object Storage
     this.#storage = storage
     // Generated identity in initialize()
@@ -60,6 +65,13 @@ export default class MiningTask {
       timestampConfirmed: this.#timestampConfirmed,
       work: this.#work
     }
+  }
+
+  // ==========================================================================
+  // Override
+
+  get ownerId() {
+    return this.#sub
   }
 
   // ==========================================================================
@@ -139,6 +151,9 @@ export default class MiningTask {
   }
 
   // CAREFUL: USER_INPUT
+  // CHANGE this.#work
+  // CHANGE this.#timestampResubmitted
+  // CHANGE this.#timestampSubmitted
   async submit(work) {
     // Prerequisite check
     if (!this.isInitialized) {
