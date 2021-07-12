@@ -75,7 +75,12 @@ export default class WebSocketServer {
   // ==========================================================================
   // Constructor and Initialize
 
-  // USING AUTH0_MANAGEMENT_TOKEN
+  // USE AUTH0_MANAGEMENT_TOKEN
+  // PROVIDE this.state
+  // PROVIDE this.storage
+  // PROVIDE this.env
+  // PROVIDE this.sessions
+  // PROVIDE this.authenticationService
   constructor(state, env) {
     // Durable Object
     this.state = state                // Durable Object state
@@ -118,6 +123,9 @@ export default class WebSocketServer {
     })
   }
 
+  // USE AUTH0_MANAGEMENT_TOKEN
+  // PROVIDE this.userToken
+  // CHANGE this.authenticationService
   async handleSession(webSocket) {
     // New web socket
     webSocket.accept()
@@ -133,8 +141,14 @@ export default class WebSocketServer {
         // Extract data from incoming message
         const { token, action, payload } = JSON.parse(data)
 
+        // Check the user token
+        if (this.userToken !== token && this.authenticationService.isAuthenticated) {
+          this.authenticationService = new AuthenticationService(this.env.AUTH0_MANAGEMENT_TOKEN)
+        }
+
         // Authentication
         if (!this.authenticationService.isAuthenticated) {
+          this.userToken = token
           await this.authenticationService.authenticate(token)
         }
         
@@ -175,7 +189,7 @@ export default class WebSocketServer {
   // ==========================================================================
   // 
 
-  // PROVIDING this.request
+  // PROVIDE this.request
   async fetch(request) {
     //
     this.request = request
