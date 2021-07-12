@@ -5,7 +5,8 @@ import SchemaController from './controllers/schema-controller.js'
 
 import WebSocketController from './controllers/web-socket-controller.js'
 
-import Mining from './api/mining.js'
+// import Mining from './api/mining.js'
+import { default as Mining } from './web-socket-servers/mining/mining-web-socket-server.js'
 
 export {
   Mining
