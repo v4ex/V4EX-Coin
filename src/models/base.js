@@ -6,6 +6,7 @@ export class Model {
   }
 
   // OVERRIDE
+  // PROVIDE this.defaults
   get defaults() {
     return {}
   }
@@ -21,6 +22,7 @@ export class ModelsList {
   }
 
   // OVERRIDE
+  // PROVIDE this.model
   get model() {
     return Model
   }

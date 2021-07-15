@@ -5,6 +5,7 @@
 /data
 /dev
 /node_modules
+/tests
 /src/controllers/dev-controller.js
 
 .env

@@ -1,7 +1,10 @@
 import Action from './action.js'
 
-export default class ViewAction extends Action {
+// TODO
 
+export default class RejectAction extends Action {
+
+  // CHANGE this.source | this.webSocketServer.miningTask
   // CHANGE this.responseMessage
   async do() {
     if (!this.isAllowed) {
@@ -11,6 +14,7 @@ export default class ViewAction extends Action {
     
     const miningTask = this.resource
     const responseMessage = this.responseMessage
+
     if (miningTask.isInitialized) {
       responseMessage.setStatus(200, "Returning the initialized Mining Task.") // "OK"
     } else {
@@ -19,7 +23,7 @@ export default class ViewAction extends Action {
 
     // Add data to payload
     if (responseMessage.status < 400) {
-      responseMessage.payload.miningTask = miningTask.clone
+      responseMessage.payload.miningTask = miningTask.view()
     }
   }
 

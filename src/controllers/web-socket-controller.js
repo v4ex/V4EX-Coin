@@ -37,7 +37,7 @@ export default class WebSocketController extends Controller {
   // wss://${hostname}/mining?sub=${sub}
   async mining(request, env, sub) {
     const id = env.MINING.idFromName(sub)
-    const stub = await env.MINING.get(id)
+    const stub = env.MINING.get(id)
 
     return stub.fetch(request)
   }
@@ -45,7 +45,7 @@ export default class WebSocketController extends Controller {
   // wss://${hostname}/brokering?sub=${sub}
   async brokering(request, env, sub) {
     const id = env.BROKERING.idFromName(sub)
-    const stub = await env.BROKERING.get(id)
+    const stub = env.BROKERING.get(id)
 
     return stub.fetch(request)
   }
@@ -53,7 +53,7 @@ export default class WebSocketController extends Controller {
   // wss://${hostname}/minting?sub=${sub}
   async minting(request, env, sub) {
     const id = env.MINTING.idFromName(sub)
-    const stub = await env.MINTING.get(id)
+    const stub = env.MINTING.get(id)
 
     return stub.fetch(request)
   }
@@ -61,7 +61,7 @@ export default class WebSocketController extends Controller {
   // wss://${hostname}/error
   async error(request, env) {
     const id = env.ERROR.idFromName('V4EX')
-    const stub = await env.ERROR.get(id)
+    const stub = env.ERROR.get(id)
 
     return stub.fetch(request)
   }
@@ -69,7 +69,7 @@ export default class WebSocketController extends Controller {
   // wss://${hostname}/debug
   async debug(request, env) {
     const id = env.DEBUG.idFromName('V4EX')
-    const stub = await env.DEBUG.get(id)
+    const stub = env.DEBUG.get(id)
 
     return stub.fetch(request)
   }

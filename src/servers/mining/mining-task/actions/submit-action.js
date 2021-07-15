@@ -10,16 +10,17 @@ export default class SubmitAction extends Action {
       return
     }
 
-    const miningTask = this.resource
+    const miningTaskSource = this.source
+    const miningTaskResource = this.resource
     const responseMessage = this.responseMessage
     const payload = this.payload
 
-    if (!miningTask.isInitialized) { // Not yet initialized
+    if (!miningTaskSource.isInitialized) { // Not yet initialized
       responseMessage.setStatus(409, "Mining Task is not yet initialized, run INITIALIZE first.") // "Conflict"
-    } else if (miningTask.isSubmitted) { // Already submitted
+    } else if (miningTaskSource.isSubmitted) { // Already submitted
       responseMessage.setStatus(409, "Work information exists, RESUBMIT can override.") // "Conflict"
     } else { // Initialized, but not yet submitted
-      let submitted = await miningTask.submit(payload.work)                
+      let submitted = await miningTaskResource.submit(payload.work)                
       if (submitted) {
         responseMessage.setStatus(201, "New work information has been successfully submitted.") // "Created"
       } else {
@@ -29,7 +30,7 @@ export default class SubmitAction extends Action {
 
     // Attach payload
     if (responseMessage.status < 400) {
-      responseMessage.payload.miningTask = miningTask.clone
+      responseMessage.payload.miningTask = miningTaskResource.view()
     }
   }
 

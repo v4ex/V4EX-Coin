@@ -1,5 +1,7 @@
 
 export default class Auth0Proxy {
+  // ENV AUTH0_TENANT_DOMAIN
+  // PROVIDE Auth0Proxy.TENANT_DOMAIN
   static get TENANT_DOMAIN() {
     return process.env.AUTH0_TENANT_DOMAIN
   }

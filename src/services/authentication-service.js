@@ -16,6 +16,7 @@ import { User } from '../models/user.js'
 // ============================================================================
 // 
 
+// TODO A way to refresh user info.
 export default class AuthenticationService {
   #auth0Proxy
   #auth0UserProxy

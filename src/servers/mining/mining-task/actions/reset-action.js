@@ -11,11 +11,11 @@ export default class ViewAction extends Action {
       return
     }
 
+    const miningTaskResource = this.resource
     const webSocketServer = this.webSocketServer
-    const miningTask = this.resource
     const responseMessage = this.responseMessage
 
-    await miningTask.reset()
+    await miningTaskResource.reset()
     await webSocketServer.initializeMiningTask()
 
     responseMessage.setStatus(205, "Mining task has been successfully reset.") // "Reset Content"

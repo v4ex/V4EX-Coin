@@ -6,7 +6,7 @@ import SchemaController from './controllers/schema-controller.js'
 import WebSocketController from './controllers/web-socket-controller.js'
 
 // import Mining from './api/mining.js'
-import { default as Mining } from './web-socket-servers/mining/mining-web-socket-server.js'
+import Mining from './servers/mining/mining-server.js'
 
 export {
   Mining
@@ -20,6 +20,7 @@ export default {
     // ========================================================================
     // Handle dev request
 
+    // const { default: DevController } = await import('./controllers/dev-controller.js') // ERROR in Conflict: Multiple assets emit different content to the same filename worker.mjs.map
     // const devController = new DevController(request, env)
     // if (devController.canHandle) {
     //   return devController.handleRequest()

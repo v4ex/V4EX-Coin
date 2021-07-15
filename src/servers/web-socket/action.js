@@ -4,6 +4,7 @@ export default class Action {
   // ==========================================================================
   // For Customization
 
+  // PROVIDE this.isAllowed
   get isAllowed() {
     return true
   }
@@ -21,13 +22,14 @@ export default class Action {
 
   // PROVIDE this.webSocketServer
   // PROVIDE this.resource
+  // PROVIDE this.source
   // PROVIDE this.user
   // PROVIDE this.payload
   // PROVIDE this.responseMessage
   /**
    * 
    * @param {WebSocketServer} webSocketServer 
-   * @param {*} resource Target resource
+   * @param {Resource} resource Target resource
    * @param {User} user User model
    * @param {*} payload Payload in income message
    * @param {*} responseMessage Outgoing response message
@@ -35,6 +37,7 @@ export default class Action {
   constructor(webSocketServer, resource, user, payload, responseMessage) {
     this.webSocketServer = webSocketServer
     this.resource = resource
+    this.source = resource.source
     this.user = user
     this.payload = payload
     this.responseMessage = responseMessage
@@ -43,6 +46,11 @@ export default class Action {
   // CHANGE this.responseMessage
   disallow() {
     this.responseMessage.setStatus(403) // "Forbidden"
+  }
+
+  // PROVIDE this.sourceModel
+  get sourceModel() {
+    return this.source.model
   }
 
 }

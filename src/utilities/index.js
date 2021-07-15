@@ -7,4 +7,8 @@ _.mixin({
   getAuthorizationBearerFromRequest,
 })
 
+/**
+ * @function randomString()
+ * @function getAuthorizationBearerFromRequest(request: Request)
+ */
 export default _

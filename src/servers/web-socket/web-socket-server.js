@@ -1,11 +1,13 @@
 // Durable Object with Web Socket and Auth features
 
-import AuthenticationService from '../services/authentication-service.js'
-import AuthorizationService from '../services/authorization-service.js'
+import AuthenticationService from '../../services/authentication-service.js'
+import AuthorizationService from '../../services/authorization-service.js'
 
 import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
 Status.getReasonPhrase = getReasonPhrase
+
+import Action from './action.js';
 
 
 // ============================================================================
@@ -32,6 +34,7 @@ class ResponseMessage {
 // Handle multiple client sessions.
 // Handle single resource CRUD.
 // Handle multiple resources CRUD.
+// TODO Rate limit
 
 export default class WebSocketServer {
 
@@ -48,10 +51,9 @@ export default class WebSocketServer {
     return "/web-socket"
   }
 
+  // AVAILABLE this.authenticationService.user if successfully authenticated
   /**
    * Override this method to handle web socket messages
-   * 
-   * AVAILABLE this.authenticationService.user if successfully authenticated
    * 
    * @param {User} user
    * @param {string} action 
@@ -62,8 +64,9 @@ export default class WebSocketServer {
   async actionRoutes(user, action, payload, responseMessage) {
     switch (action) {
       case 'DEFAULT': {
-        // 200 "OK"
-        responseMessage.setStatus(200)
+        const defaultAction = new Action(this, undefined, user, payload, responseMessage)
+        await defaultAction.do()
+
         break
       }
       default: {
@@ -94,14 +97,16 @@ export default class WebSocketServer {
     // Authentication
     this.authenticationService = new AuthenticationService(env.AUTH0_MANAGEMENT_TOKEN) // Authentication service
     // Authorization
-    this.authorizationService = new AuthorizationService()  // Authorization service
+    this.authorizationService = new AuthorizationService(this.authenticationService, env.AUTH0_MANAGEMENT_TOKEN)  // Authorization service
   }
 
+  // PROVIDE this.url
   // Available before initialize()
   get url() {
     return new URL(this.request.url)
   }
 
+  // PROVIDE this.sub
   // Available before initialize()
   get sub() {
     return this.url.searchParams.get('sub')
