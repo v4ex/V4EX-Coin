@@ -13,7 +13,7 @@ import Action from './action.js';
 // ============================================================================
 // WebSocket Message
 
-class ResponseMessage {
+export class ResponseMessage {
   status = 200
   statusReason = Status.getReasonPhrase(200)
   statusMessage = Status[`200_MESSAGE`]
@@ -41,41 +41,37 @@ export default class WebSocketServer {
   // ==========================================================================
   // Customization
 
+  // PROVIDE this.bindingName
+  // OVERRIDE
   // Durable Object Binding name set in wrangler.toml
   get bindingName() {
     return "WEB_SOCKET_SERVER"
   }
 
+  // PROVIDE this.routePrefix
+  // OVERRIDE
   // Request route prefix e.g. '/example'
   get routePrefix() {
     return "/web-socket"
   }
 
   // AVAILABLE this.authenticationService.user if successfully authenticated
+  // PROTOCOL
+  // OVERRIDE
   /**
    * Override this method to handle web socket messages
    * 
    * @param {User} user
-   * @param {string} action 
+   * @param {Resource} resource
+   * @param {string} action
    * @param {*} payload 
    * @param {ResponseMessage} responseMessage
    * @returns {Promise}
    */
-  async actionRoutes(user, action, payload, responseMessage) {
-    switch (action) {
-      case 'DEFAULT': {
-        const defaultAction = new Action(this, undefined, user, payload, responseMessage)
-        await defaultAction.do()
-
-        break
-      }
-      default: {
-        // Logging
-        console.warn("User is trying unknown action: " + action.toString())
-        // 501 "Not Implemented"
-        responseMessage.setStatus(501, `Unknown action: ${action}`)
-      }
-    }
+  async actionRoutes(user, resource, action, payload, responseMessage) {
+    const resourceActionClass = resource.actionsList.get(action)
+    const resourceAction = new resourceActionClass(this, resource, user, payload, responseMessage)
+    await resourceAction.do()
   }
 
   // ==========================================================================
@@ -87,6 +83,7 @@ export default class WebSocketServer {
   // PROVIDE this.env
   // PROVIDE this.sessions
   // PROVIDE this.authenticationService
+  // PROVIDE this.resourcesRegistry
   constructor(state, env) {
     // Durable Object
     this.state = state                // Durable Object state
@@ -98,6 +95,16 @@ export default class WebSocketServer {
     this.authenticationService = new AuthenticationService(env.AUTH0_MANAGEMENT_TOKEN) // Authentication service
     // Authorization
     this.authorizationService = new AuthorizationService(this.authenticationService, env.AUTH0_MANAGEMENT_TOKEN)  // Authorization service
+
+    // Resources Registry
+    // Object.defineProperty(this, 'resourcesRegistry', {
+    //   value: new Map(),
+    //   writable: false,
+    //   enumerable: true,
+    //   configurable: false
+    // })
+
+    this.resourcesRegistry = new Map()
   }
 
   // PROVIDE this.url
@@ -114,7 +121,33 @@ export default class WebSocketServer {
 
   // Before calling this, this.request is ready.
   // Make sure runtime data are initialized from durable object storage.
+  // OVERRIDE
   async initialize() {
+  }
+
+  // ==========================================================================
+  // Resources Registry
+
+  // AVAILABLE this[this.resourcesRegistry.get(key)]
+  /**
+   * @param {*} key Key about to be used to find the Resource later.
+   * @param {*} resourceClass The actual Resource class
+   * @param {*} init Initialization object if there is no stored resource.
+   */
+  async setResource(key, resourceClass, init = {}) {
+    const resourceSymbol = Symbol(key)
+    this.resourcesRegistry.set(key, resourceSymbol)
+
+    const storedResource = await this.storage.get(key)
+    this[resourceSymbol] = new resourceClass(storedResource ?? init, this.storage, key)
+  }
+
+  getResource(key) {
+    if (!this.resourcesRegistry.has(key)) {
+      return undefined
+    }
+
+    return this[this.resourcesRegistry.get(key)]
   }
 
   // ==========================================================================
@@ -147,7 +180,22 @@ export default class WebSocketServer {
 
       try {
         // Extract data from incoming message
-        const { token, action, payload } = JSON.parse(data)
+        // token: User access token
+        // resource: Target resource key string
+        // action: Action to target resource
+        // payload: Additional payload
+        const { token, resource: resourceName, action, payload } = JSON.parse(data)
+
+        // Check the target resource
+        const resource = this.getResource(resourceName)
+        if (resource === undefined) {
+          throw new Error(`Unknown resource: ${resourceName}`)
+        }
+
+        // Check the specific action
+        if (!resource.actionsList.has(action)) {
+          throw new Error(`Unknown action(${action}) to resource(${resourceName})`)
+        }
 
         // Check the user token
         if (this.userToken !== token && this.authenticationService.isAuthenticated) {
@@ -164,9 +212,10 @@ export default class WebSocketServer {
 
         // Authenticated
         if (user) {
-          // ActionRoutes callback
-          await this.actionRoutes(user, action.toString(), payload, responseMessage)
+          // CHANGE responseMessage
+          await this.actionRoutes(user, resource, action, payload, responseMessage) // ActionRoutes hook
         } else {
+          // TODO Add Guest ActionRoutes
           responseMessage.setStatus(401) // Unauthorized
         }
       } catch (error) {

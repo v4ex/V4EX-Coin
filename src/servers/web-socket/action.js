@@ -22,7 +22,6 @@ export default class Action {
 
   // PROVIDE this.webSocketServer
   // PROVIDE this.resource
-  // PROVIDE this.source
   // PROVIDE this.user
   // PROVIDE this.payload
   // PROVIDE this.responseMessage
@@ -37,10 +36,14 @@ export default class Action {
   constructor(webSocketServer, resource, user, payload, responseMessage) {
     this.webSocketServer = webSocketServer
     this.resource = resource
-    this.source = resource.source
     this.user = user
     this.payload = payload
     this.responseMessage = responseMessage
+  }
+
+  // OVERRIDE
+  async do() {
+    this.responseMessage.setStatus(200) // "OK"
   }
 
   // CHANGE this.responseMessage
@@ -48,9 +51,9 @@ export default class Action {
     this.responseMessage.setStatus(403) // "Forbidden"
   }
 
-  // PROVIDE this.sourceModel
-  get sourceModel() {
-    return this.source.model
+  // PROVIDE this.resourceModel
+  get resourceModel() {
+    return this.resource.toModel()
   }
 
 }

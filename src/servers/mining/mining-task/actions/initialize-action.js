@@ -16,11 +16,10 @@ export default class ViewAction extends Action {
       return
     }
 
-    const miningTaskSource = this.source
     const miningTaskResource = this.resource
     const responseMessage = this.responseMessage
     
-    if (miningTaskSource.isInitialized) {
+    if (miningTaskResource.isInitialized) {
       responseMessage.setStatus(409, "Mining Task has been initialized before.") // "Conflict"
     } else { // Mining Task not yet initialized
       const initialized = await miningTaskResource.initialize()
@@ -31,7 +30,7 @@ export default class ViewAction extends Action {
 
     // Add data to payload
     if (responseMessage.status < 400) {
-      responseMessage.payload.miningTask = miningTaskResource.view()
+      responseMessage.payload.miningTask = miningTaskResource.toModel()
     }
   }
 

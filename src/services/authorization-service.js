@@ -55,7 +55,7 @@ export default class AuthorizationService {
   isOwnerOf(ownable) {
     this.throwIfNotAuthenticated()
 
-    if (!ownable.isOwnable) {
+    if (!(ownable instanceof Ownable) || ! ownable.isValid) {
       throw new Error("Target is not ownable.")
     }
 

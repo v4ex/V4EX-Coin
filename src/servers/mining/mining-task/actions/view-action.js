@@ -10,11 +10,10 @@ export default class ViewAction extends Action {
       return
     }
     
-    const miningTaskSource = this.source
     const miningTaskResource = this.resource
     const responseMessage = this.responseMessage
 
-    if (miningTaskSource.isInitialized) {
+    if (miningTaskResource.isInitialized) {
       responseMessage.setStatus(200, "Returning the initialized Mining Task.") // "OK"
     } else {
       responseMessage.setStatus(206, "Mining Task is not yet initialized. Use INITIALIZE.") // "Partial Content"
@@ -22,7 +21,7 @@ export default class ViewAction extends Action {
 
     // Add data to payload
     if (responseMessage.status < 400) {
-      responseMessage.payload.miningTask = miningTaskResource.view()
+      responseMessage.payload.miningTask = miningTaskResource.toModel()
     }
   }
 

@@ -2,6 +2,7 @@ import { default as BaseAction } from '../../../web-socket/action.js'
 
 export default class Action extends BaseAction {
 
+  // TODO Situations + Permissions Control
   // TODO Broker, Minter permissions
   get isAllowed() {
     // Undefined resource
@@ -10,7 +11,7 @@ export default class Action extends BaseAction {
     }
 
     const authorizationService = this.webSocketServer.authorizationService
-    const miningTask = this.resource.source.model
+    const miningTask = this.resourceModel
     
     return authorizationService.isOwnerOf(miningTask)
   }

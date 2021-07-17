@@ -12,10 +12,10 @@ export default class RejectAction extends Action {
       return
     }
     
-    const miningTask = this.resource
+    const miningTaskResource = this.resource
     const responseMessage = this.responseMessage
 
-    if (miningTask.isInitialized) {
+    if (miningTaskResource.isInitialized) {
       responseMessage.setStatus(200, "Returning the initialized Mining Task.") // "OK"
     } else {
       responseMessage.setStatus(206, "Mining Task is not yet initialized. Use INITIALIZE.") // "Partial Content"
@@ -23,7 +23,7 @@ export default class RejectAction extends Action {
 
     // Add data to payload
     if (responseMessage.status < 400) {
-      responseMessage.payload.miningTask = miningTask.view()
+      responseMessage.payload.miningTask = miningTaskResource.toModel()
     }
   }
 

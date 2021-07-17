@@ -5,9 +5,32 @@ import SchemasService from '../../../services/schemas-service.js'
 
 import { MiningTask } from './models/mining-task.js'
 
-import Source from '../../web-socket/source.js'
+import Resource from '../../web-socket/resource.js'
+
+import ViewAction from './actions/view-action.js'
+import InitializeAction from './actions/initialize-action.js'
+import SubmitAction from './actions/submit-action.js'
+import RejectAction from './actions/reject-action.js'
+import ResubmitAction from './actions/resubmit-action.js'
+import ResetAction from './actions/reset-action.js'
 
 
+// ============================================================================
+// MiningTaskResourceActionsList
+
+// PROTOCOL
+export const MiningTaskResourceActionsList = new Map(Object.entries({
+  'VIEW': ViewAction,
+  'INITIALIZE': InitializeAction,
+  'SUBMIT': SubmitAction,
+  'REJECT': RejectAction,
+  'RESUBMIT': ResubmitAction,
+  'RESET': ResetAction
+}))
+
+// ============================================================================
+// MiningTaskResource
+//
 // Ownable < Model
 // Stored in Miner Durable Object
 
@@ -17,7 +40,7 @@ import Source from '../../web-socket/source.js'
  * 
  * @property {MiningTask} model 
  */
-export default class MiningTaskSource extends Source {
+export default class MiningTaskResource extends Resource {
   // Private
   #storage
   #key
@@ -48,6 +71,7 @@ export default class MiningTaskSource extends Source {
   // PROVIDE this.#timestampProceeded
   // PROVIDE this.#timestampConfirmed
   // PROVIDE this.#work
+  // OVERRIDDEN
   constructor({id, sub, timestampInitialized, timestampCommitted, timestampSubmitted, timestampRejected, timestampResubmitted, timestampProceeded, timestampConfirmed, work}, storage, key) {
     // Pass no attributes to parent model
     super()
@@ -72,7 +96,13 @@ export default class MiningTaskSource extends Source {
     this.#work = work // Work details, e.g. (SPoW) Social Proof of Work
   }
 
+  // OVERRIDDEN
+  get actionsList() {
+    return MiningTaskResourceActionsList
+  }
+
   // Object public attributes
+  // OVERRIDDEN
   get attributes() {
     return {
       sub: this.#sub,
@@ -88,7 +118,8 @@ export default class MiningTaskSource extends Source {
     }
   }
 
-  get model() {
+  // OVERRIDDEN
+  toModel() {
     return new MiningTask(this.attributes)
   }
 
@@ -103,7 +134,7 @@ export default class MiningTaskSource extends Source {
 
     try {
       // Only available when connected to Durable Object
-      await this.#storage.put(this.#key, this.model)
+      await this.#storage.put(this.#key, this.toModel())
       return true
     } catch (error) {
       return false
@@ -118,6 +149,17 @@ export default class MiningTaskSource extends Source {
 
     try {
       await this.#storage.put(this.#key, { sub: this.#sub })
+
+      this.#id = undefined
+      this.#timestampInitialized = undefined
+      this.#timestampCommitted = undefined
+      this.#timestampSubmitted = undefined
+      this.#timestampRejected = undefined
+      this.#timestampResubmitted = undefined
+      this.#timestampProceeded = undefined
+      this.#timestampConfirmed = undefined
+      this.#work = undefined
+
       return true
     } catch (error) {
       return false
@@ -128,31 +170,31 @@ export default class MiningTaskSource extends Source {
   // States
 
   get isInitialized() {
-    return this.#timestampInitialized !== undefined && this.#id !== undefined
+    return this.#timestampInitialized != null && this.#id != null
   }
 
   get isCommitted() {
-    return this.#timestampCommitted !== undefined
+    return this.#timestampCommitted != null
   }
 
   get isSubmitted() {
-    return this.#timestampSubmitted !== undefined
+    return this.#timestampSubmitted != null
   }
 
   get isRejected() {
-    return this.#timestampRejected !== undefined
+    return this.#timestampRejected != null
   }
 
   get isResubmitted() {
-    return this.#timestampResubmitted !== undefined
+    return this.#timestampResubmitted != null
   }
 
   get isProceeded() {
-    return this.#timestampProceeded !== undefined
+    return this.#timestampProceeded != null
   }
 
   get isConfirmed() {
-    return this.#timestampConfirmed !== undefined
+    return this.#timestampConfirmed != null
   }
 
   // ==========================================================================
