@@ -1,8 +1,7 @@
-import { ModelsList } from "../../../../models/base.js"
-import { Ownable } from "../../../../models/ownable.js"
+import { Resource, ResourcesList } from '../../../web-socket/models/resource.js'
 
 
-export class MiningTask extends Ownable {
+export class MiningTask extends Resource {
 
   // PROVIDE this.ownerId
   get ownerId() {
@@ -11,7 +10,7 @@ export class MiningTask extends Ownable {
 
 }
 
-export class MiningTasksList extends ModelsList {
+export class MiningTasksList extends ResourcesList {
 
   // PROVIDE this.model
   get model() {

@@ -2,7 +2,7 @@ import { ModelsList } from "../../../models/base.js"
 import { Ownable } from "../../../models/ownable.js"
 
 
-export class Source extends Ownable {
+export class Resource extends Ownable {
 
   // PROVIDE this.ownerId
   get ownerId() {
@@ -11,12 +11,12 @@ export class Source extends Ownable {
 
 }
 
-export class SourcesList extends ModelsList {
+export class ResourcesList extends ModelsList {
 
   // PROVIDE this.model
   // OVERRIDDEN
   get model() {
-    return Source
+    return Resource
   }
 
 }

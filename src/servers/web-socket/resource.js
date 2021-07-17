@@ -1,7 +1,6 @@
 // Utilize Durable Object Storage
 
-import { map } from "lodash"
-import { Model } from "../../models/base.js"
+import { Resource as ResourceModel } from './models/resource.js'
 
 import Action from "./action.js"
 
@@ -9,7 +8,7 @@ import Action from "./action.js"
 // ResourceActionsList
 
 // PROTOCOL
-export const ResourceActionsList = new map(Object.entries({
+export const ResourceActionsList = new Map(Object.entries({
   'DEFAULT': Action
 }))
 
@@ -38,7 +37,7 @@ export default class Resource {
 
   // OVERRIDE
   toModel() {
-    return new Model(this.attributes)
+    return new ResourceModel(this.attributes)
   }
 
 }

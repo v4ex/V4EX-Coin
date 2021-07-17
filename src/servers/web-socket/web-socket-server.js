@@ -7,8 +7,6 @@ import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
 Status.getReasonPhrase = getReasonPhrase
 
-import Action from './action.js';
-
 
 // ============================================================================
 // WebSocket Message
@@ -97,14 +95,12 @@ export default class WebSocketServer {
     this.authorizationService = new AuthorizationService(this.authenticationService, env.AUTH0_MANAGEMENT_TOKEN)  // Authorization service
 
     // Resources Registry
-    // Object.defineProperty(this, 'resourcesRegistry', {
-    //   value: new Map(),
-    //   writable: false,
-    //   enumerable: true,
-    //   configurable: false
-    // })
-
-    this.resourcesRegistry = new Map()
+    Object.defineProperty(this, 'resourcesRegistry', {
+      value: new Map(),
+      writable: false,
+      enumerable: true,
+      configurable: false
+    })
   }
 
   // PROVIDE this.url
