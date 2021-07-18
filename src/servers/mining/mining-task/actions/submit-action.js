@@ -1,11 +1,26 @@
 import Action from './action.js'
 
+// ============================================================================
+// Permissions
+//
+// Situation A: Miner is trying to submit work information to his own Mining Task.
+
+
+// ============================================================================
+// 
+
 export default class SubmitAction extends Action {
+
+  // PROVIDE this.isAllowed
+  // OVERRIDDEN
+  async isAllowed() {
+    return await this.isMinerUser() && await super.isAllowed()
+  }
 
   // CHANGE this.resource | this.webSocketServer.miningTask -> this.webSocketServer.miningTask.#work
   // CHANGE this.responseMessage
   async do() {
-    if (!this.isAllowed) {
+    if (!await this.isAllowed()) {
       this.disallow()
       return
     }

@@ -1,7 +1,22 @@
 
 import Action from './action.js'
 
+// ============================================================================
+// Permissions
+//
+// Situation A: Miner is trying to initialize his own Mining Task.
+
+
+// ============================================================================
+// 
+
 export default class ViewAction extends Action {
+
+  // PROVIDE this.isAllowed
+  // OVERRIDDEN
+  async isAllowed() {
+    return await this.isMinerUser() && await super.isAllowed()
+  }
 
   // CHANGE this.resource | this.webSocketServer.miningTask
   // CHANGE this.responseMessage
@@ -11,7 +26,7 @@ export default class ViewAction extends Action {
    * @returns 
    */
   async do() {
-    if (!this.isAllowed) {
+    if (!await this.isAllowed()) {
       this.disallow()
       return
     }

@@ -1,11 +1,42 @@
 import Action from './action.js'
 
 
+// ============================================================================
+// Permissions
+//
+// Situation A: Miner is trying to view his own Mining Task.
+// Situation B: Broker is trying to view Mining Task that with submitted work managed by the same Broker.
+// Situation C: Minter is trying to view any Mining Task.
+
+
+// ============================================================================
+// 
+
 export default class ViewAction extends Action {
+
+  // PROVIDE this.isAllowed
+  // OVERRIDDEN
+  async isAllowed() {
+    const situationA = await this.isMinerUser() && await super.isAllowed()
+    if (situationA) {
+      return true
+    }
+
+    // TODO Check submitted work
+    const situationB = await this.isBrokerUser()
+    if (situationB) {
+      return true
+    }
+
+    const situationC = await this.isMinterUser()
+    if (situationC) {
+      return true
+    }
+  }
 
   // CHANGE this.responseMessage
   async do() {
-    if (!this.isAllowed) {
+    if (!await this.isAllowed()) {
       this.disallow()
       return
     }

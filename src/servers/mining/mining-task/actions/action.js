@@ -1,19 +1,20 @@
 import { default as BaseAction } from '../../../web-socket/action.js'
 
+// ============================================================================
+// Permissions
+//
+// Situation: Authenticated User is trying to operate on his own Resource.
+
+
+// ============================================================================
+// 
+
 export default class Action extends BaseAction {
 
-  // TODO Situations + Permissions Control
-  // TODO Broker, Minter permissions
-  get isAllowed() {
-    // Undefined resource
-    if (!this.resource) {
-      return false
-    }
-
-    const authorizationService = this.webSocketServer.authorizationService
-    const miningTask = this.resourceModel
-    
-    return authorizationService.isOwnerOf(miningTask)
+  // PROVIDE this.isAllowed
+  // OVERRIDDEN
+  async isAllowed() {
+    return this.isAuthenticatedUser && this.isUserOwningTheResource
   }
-  
+
 }

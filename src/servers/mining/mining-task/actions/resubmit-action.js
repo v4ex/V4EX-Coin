@@ -1,11 +1,27 @@
 import Action from './action.js'
 
+// ============================================================================
+// Permissions
+//
+// Situation: Broker is trying to resubmit work information to his brokering Mining Task.
+
+
+// ============================================================================
+// 
+
 export default class SubmitAction extends Action {
+
+  // PROVIDE this.isAllowed
+  // OVERRIDDEN
+  async isAllowed() {
+    // TODO Brokering work check
+    return await this.isBrokerUser()
+  }
 
   // CHANGE this.resource | this.webSocketServer.miningTask -> this.webSocketServer.miningTask.#work
   // CHANGE this.responseMessage
   async do() {
-    if (!this.isAllowed) {
+    if (!await this.isAllowed()) {
       this.disallow()
       return
     }

@@ -206,14 +206,10 @@ export default class WebSocketServer {
         
         const user = this.authenticationService.user
 
-        // Authenticated
-        if (user) {
-          // CHANGE responseMessage
-          await this.actionRoutes(user, resource, action, payload, responseMessage) // ActionRoutes hook
-        } else {
-          // TODO Add Guest ActionRoutes
-          responseMessage.setStatus(401) // Unauthorized
-        }
+        // HOOK this.actionRoutes
+        // CHANGE responseMessage
+        await this.actionRoutes(user, resource, action, payload, responseMessage)
+
       } catch (error) {
         // Error
         console.error("Error caught processing income message: ", error.message);
