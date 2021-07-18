@@ -26,6 +26,208 @@ export class ResponseMessage {
   }
 }
 
+
+// ============================================================================
+// Sessions Manager
+
+class SessionsManager {
+
+  allSessions
+  managedSessions
+  managedSessionsIndexes
+
+  constructor() {
+    this.allSessions = new Map() // session.id -> session
+    this.managedSessions = new Map() // userId -> Set()
+    this.managedSessionsIndexes = new Map() // session.id -> userId
+  }
+
+  /**
+   * @param {WebSocketSession} session 
+   */
+  addSession(session) {
+    this.allSessions.set(session.id, session)
+    // Try to manage session
+    this.manageSession(session)
+  }
+
+  getSession(sessionId) {
+    return this.allSessions.get(sessionId)
+  }
+
+  /**
+   * @param {WebSocketSession} session 
+   * @returns boolean
+   */
+  deleteSession(session) {
+    this.unmanageSession(session)
+    return this.allSessions.delete(session.id)
+  }
+
+  /**
+   * Try to manage the session.
+   * @param {WebSocketSession} session 
+   */
+  manageSession(session) {
+    if (session.userId) {
+      let userSessions = this.managedSessions.get(session.userId)
+      if (!userSessions) {
+        userSessions = new Set()
+        this.managedSessions.set(session.userId, userSessions)
+      }
+      userSessions.add(session.id)
+      this.managedSessionsIndexes.set(session.id, session.userId)
+    }
+  }
+
+  unmanageSession(session) {
+    const userId = this.managedSessionsIndexes.get(session.id)
+    if (userId) {
+      const userSessions = this.getUserSessions(userId)
+      userSessions.delete(session.id)
+      this.managedSessionsIndexes.delete(session.id)
+    }
+  }
+
+  getUserSessions(userId) {
+    return this.managedSessions.get(userId)
+  }
+
+}
+
+
+// ============================================================================
+// WebSocket Session
+
+class WebSocketSession {
+
+  constructor(webSocketServer, webSocket, request, managementToken) {
+    this.webSocketServer = webSocketServer
+    this.sessionsManager = webSocketServer.sessionsManager
+    this.ipAddress = request.headers.get("CF-Connecting-IP")
+    this.id = Symbol(this.ipAddress) // Unique even ipAddress is the same.
+    this.webSocket = webSocket
+    this.request = request
+    this.managementToken = managementToken
+    this.authenticationService = new AuthenticationService(managementToken)
+    this.authorizationService = new AuthorizationService(this.authenticationService, managementToken)
+    
+    //
+    this.webSocket.accept()
+
+    this.addToSessionsManager()
+
+    // AVAILABLE this.userId If successfully authenticated
+    // CHANGE this.userToken
+    // PROVIDE this.userToken
+    this.webSocket.addEventListener('message', async ({data}) => {
+
+      // Default response message
+      let responseMessage = new ResponseMessage()
+
+      try {
+        // Extract data from incoming message
+        // token: User access token
+        // resource: Target resource key string
+        // action: Action to target resource
+        // payload: Additional payload
+        const { token, resource: resourceName, action, payload } = JSON.parse(data)
+
+        // Check the target resource
+        const resource = this.webSocketServer.getResource(resourceName)
+        if (resource === undefined) {
+          throw new Error(`Unknown resource: ${resourceName}`)
+        }
+
+        // Check the specific action
+        if (!resource.actionsList.has(action)) {
+          throw new Error(`Unknown action(${action}) to resource(${resourceName})`)
+        }
+
+        // Check the user token
+        if (this.userToken !== token && this.authenticationService.isAuthenticated) {
+          this.authenticationService = new AuthenticationService(this.managementToken)
+        }
+
+        // Authentication
+        if (!this.authenticationService.isAuthenticated) {
+          this.userToken = token
+          await this.authenticationService.authenticate(token)
+        }
+        
+        const user = this.authenticationService.user
+        if (user && user.isValid) {
+          this.userId = user.id
+        } else {
+          this.userId = undefined
+        }
+        this.refreshSessionState()
+
+        // HOOK this.actionRoutes
+        // CHANGE responseMessage
+        await this.webSocketServer.actionRoutes(this, resource, action, payload, responseMessage)
+
+      } catch (error) {
+        // Error
+        console.error("Error caught processing income message: ", error.message);
+        console.error(error.stack);
+
+        if (responseMessage.status <= 500) {
+          responseMessage.setStatus(500) // "Internal Server Error"
+        }
+
+      } finally { // Finally send the constructed response to client.
+        this.broadcast(responseMessage)
+      }
+
+    })
+
+    // 
+    // Handle Web Socket 'close' event
+    this.webSocket.addEventListener('close', () => {
+      this.deleteFromSessionsManager()
+    })
+
+    // Handle Web Socket 'error' event
+    this.webSocket.addEventListener('error', () => {
+      this.deleteFromSessionsManager()
+    })
+
+  }
+
+  broadcast(message) {
+    if (this.userId) {
+      const userSessions = this.sessionsManager.getUserSessions(this.userId)
+
+      userSessions.forEach(sessionId => {
+        const session = this.sessionsManager.getSession(sessionId)
+        session.webSocket.send(JSON.stringify(message))
+      })
+    } else {
+      this.webSocket.send(JSON.stringify(message))
+    }
+  }
+
+  addToSessionsManager() {
+    this.sessionsManager.addSession(this)
+  }
+
+  deleteFromSessionsManager() {
+    this.sessionsManager.deleteSession(this)
+    this.webSocket.close(1011, "WebSocket closed.")
+  }
+
+  // Switch between Unmanaged and Managed
+  refreshSessionState() {
+    if (this.userId) {
+      this.sessionsManager.manageSession(this)
+    } else {
+      this.sessionsManager.unmanageSession(this)
+    }
+  }
+
+}
+
 // ============================================================================
 // Web Socket Server implementation
 // Cloudflare Workers Durable Object
@@ -53,46 +255,39 @@ export default class WebSocketServer {
     return "/web-socket"
   }
 
-  // AVAILABLE this.authenticationService.user if successfully authenticated
-  // PROTOCOL
+  // HOOK
   // OVERRIDE
   /**
    * Override this method to handle web socket messages
    * 
-   * @param {User} user
+   * @param {WebSocketSession} session
    * @param {Resource} resource
    * @param {string} action
    * @param {*} payload 
    * @param {ResponseMessage} responseMessage
    * @returns {Promise}
    */
-  async actionRoutes(user, resource, action, payload, responseMessage) {
+  async actionRoutes(session, resource, action, payload, responseMessage) {
     const resourceActionClass = resource.actionsList.get(action)
-    const resourceAction = new resourceActionClass(this, resource, user, payload, responseMessage)
-    await resourceAction.do()
+    const resourceAction = new resourceActionClass(this, session, resource, payload, responseMessage)
+    await resourceAction.react()
   }
 
   // ==========================================================================
   // Constructor and Initialize
 
-  // ENV AUTH0_MANAGEMENT_TOKEN
   // PROVIDE this.state
   // PROVIDE this.storage
   // PROVIDE this.env
-  // PROVIDE this.sessions
-  // PROVIDE this.authenticationService
-  // PROVIDE this.resourcesRegistry
+  // PROVIDE this.sessionsManager
   constructor(state, env) {
     // Durable Object
     this.state = state                // Durable Object state
     this.storage = this.state.storage // Durable Object Storage
     this.env = env                    // Durable Object env
     // Web Socket
-    this.sessions = [] // Web socket sessions
-    // Authentication
-    this.authenticationService = new AuthenticationService(env.AUTH0_MANAGEMENT_TOKEN) // Authentication service
-    // Authorization
-    this.authorizationService = new AuthorizationService(this.authenticationService, env.AUTH0_MANAGEMENT_TOKEN)  // Authorization service
+    this.sessionsManager = new SessionsManager()
+    this.sessions = []
 
     // Resources Registry
     Object.defineProperty(this, 'resourcesRegistry', {
@@ -121,6 +316,7 @@ export default class WebSocketServer {
   async initialize() {
   }
 
+
   // ==========================================================================
   // Resources Registry
 
@@ -146,101 +342,13 @@ export default class WebSocketServer {
     return this[this.resourcesRegistry.get(key)]
   }
 
+
   // ==========================================================================
-  // Web Socket
-
-  clearSession(session, webSocket) {
-    this.sessions = this.sessions.filter((_session) => _session !== session)
-    webSocket.close(1011, "WebSocket closed.")
-  }
-
-  broadcast(message) {
-    this.sessions.forEach((session) => {
-      session.webSocket.send(JSON.stringify(message))
-    })
-  }
+  // fetch
 
   // ENV AUTH0_MANAGEMENT_TOKEN
-  // PROVIDE this.userToken
-  // CHANGE this.authenticationService
-  async handleSession(webSocket) {
-    // New web socket
-    webSocket.accept()
-    const session = { webSocket }
-    this.sessions.push(session)
-
-    // Handle Web Socket 'message' event
-    webSocket.addEventListener('message', async ({ data }) => {
-      // Default response message
-      let responseMessage = new ResponseMessage()
-
-      try {
-        // Extract data from incoming message
-        // token: User access token
-        // resource: Target resource key string
-        // action: Action to target resource
-        // payload: Additional payload
-        const { token, resource: resourceName, action, payload } = JSON.parse(data)
-
-        // Check the target resource
-        const resource = this.getResource(resourceName)
-        if (resource === undefined) {
-          throw new Error(`Unknown resource: ${resourceName}`)
-        }
-
-        // Check the specific action
-        if (!resource.actionsList.has(action)) {
-          throw new Error(`Unknown action(${action}) to resource(${resourceName})`)
-        }
-
-        // Check the user token
-        if (this.userToken !== token && this.authenticationService.isAuthenticated) {
-          this.authenticationService = new AuthenticationService(this.env.AUTH0_MANAGEMENT_TOKEN)
-        }
-
-        // Authentication
-        if (!this.authenticationService.isAuthenticated) {
-          this.userToken = token
-          await this.authenticationService.authenticate(token)
-        }
-        
-        const user = this.authenticationService.user
-
-        // HOOK this.actionRoutes
-        // CHANGE responseMessage
-        await this.actionRoutes(user, resource, action, payload, responseMessage)
-
-      } catch (error) {
-        // Error
-        console.error("Error caught processing income message: ", error.message);
-        console.error(error.stack);
-
-        if (responseMessage.status <= 500) {
-          responseMessage.setStatus(500) // "Internal Server Error"
-        }
-
-      } finally { // Finally send the constructed response to client.
-        this.broadcast(responseMessage)
-      }
-    })
-
-    // Handle Web Socket 'close' event
-    webSocket.addEventListener('close', () => {
-      this.clearSession(session, webSocket)
-    })
-
-    // Handle Web Socket 'error' event
-    webSocket.addEventListener('error', () => {
-      this.clearSession(session, webSocket)
-    })
-  }
-
-  // ==========================================================================
-  // 
-
   // PROVIDE this.request
   async fetch(request) {
-    //
     this.request = request
 
     // Make sure we're fully initialized from storage.
@@ -256,7 +364,9 @@ export default class WebSocketServer {
       case this.routePrefix: {
         if (request.headers.get('Upgrade') === 'websocket') {
           const [client, server] = Object.values(new WebSocketPair())
-          await this.handleSession(server)
+
+          new WebSocketSession(this, server, request, this.env.AUTH0_MANAGEMENT_TOKEN)
+
           return new Response(null, { status: 101, webSocket: client })
         } else {
           return new Response("WebSocket expected", { status: 400 })
