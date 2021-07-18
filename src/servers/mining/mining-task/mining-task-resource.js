@@ -7,12 +7,14 @@ import { MiningTask } from './models/mining-task.js'
 
 import Resource from '../../web-socket/resource.js'
 
-import ViewAction from './actions/view-action.js'
+
 import InitializeAction from './actions/initialize-action.js'
-import SubmitAction from './actions/submit-action.js'
+import ProceedAction from './actions/proceed-action.js'
 import RejectAction from './actions/reject-action.js'
-import ResubmitAction from './actions/resubmit-action.js'
 import ResetAction from './actions/reset-action.js'
+import ResubmitAction from './actions/resubmit-action.js'
+import SubmitAction from './actions/submit-action.js'
+import ViewAction from './actions/view-action.js'
 
 
 // ============================================================================
@@ -20,12 +22,13 @@ import ResetAction from './actions/reset-action.js'
 
 // PROTOCOL
 export const MiningTaskResourceActionsList = new Map(Object.entries({
-  'VIEW': ViewAction,
   'INITIALIZE': InitializeAction,
-  'SUBMIT': SubmitAction,
+  'PROCEED': ProceedAction,
   'REJECT': RejectAction,
+  'RESET': ResetAction,
   'RESUBMIT': ResubmitAction,
-  'RESET': ResetAction
+  'SUBMIT': SubmitAction,
+  'VIEW': ViewAction,
 }))
 
 // ============================================================================

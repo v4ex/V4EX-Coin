@@ -1,18 +1,17 @@
 import Action from './action.js'
 
-
 // ============================================================================
 // Permissions
 //
-// Situation A: Miner is trying to view his own Mining Task.
-// Situation B: Broker is trying to view Mining Task that with submitted work managed by the same Broker.
-// Situation C: Minter is trying to view any Mining Task.
+// Situation: Broker is trying to proceed the brokering Mining Task.
 
 
 // ============================================================================
 // 
 
-export default class ViewAction extends Action {
+// TODO
+
+export default class ProceedAction extends Action {
 
   // PROVIDE this.isAllowed
   // OVERRIDDEN
@@ -21,23 +20,10 @@ export default class ViewAction extends Action {
       return false
     }
 
-    const situationA = await this.isMinerUser() && this.isUserOwningTheResource
-    if (situationA) {
-      return true
-    }
-
-    // TODO Check submitted work
-    const situationB = await this.isMatchedBrokeringMiningTask()
-    if (situationB) {
-      return true
-    }
-
-    const situationC = await this.isMinterUser()
-    if (situationC) {
-      return true
-    }
+    return await this.isMatchedBrokeringMiningTask()
   }
 
+  // CHANGE this.resource
   // CHANGE this.responseMessage
   async react() {
     if (! await this.isAllowed()) {
@@ -48,7 +34,7 @@ export default class ViewAction extends Action {
     const miningTaskResource = this.resource
     const responseMessage = this.responseMessage
 
-    if (miningTaskResource.isInitialized) {
+    if (miningTaskResource.isSubmitted) {
       responseMessage.setStatus(200, "Returning the initialized Mining Task.") // "OK"
     } else {
       responseMessage.setStatus(206, "Mining Task is not yet initialized. Use INITIALIZE.") // "Partial Content"

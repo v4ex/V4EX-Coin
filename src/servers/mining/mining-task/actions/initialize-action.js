@@ -15,18 +15,22 @@ export default class ViewAction extends Action {
   // PROVIDE this.isAllowed
   // OVERRIDDEN
   async isAllowed() {
-    return await this.isMinerUser() && await super.isAllowed()
+    if (! await super.isAllowed()) {
+      return false
+    }
+
+    return await this.isMinerUser() && this.isUserOwningTheResource
   }
 
-  // CHANGE this.resource | this.webSocketServer.miningTask
+  // CHANGE this.resource
   // CHANGE this.responseMessage
   /**
    * Before inter-exchanging messages, this.miningTask value has been initialized from DO storage or by code
    * Miner can only initialize a mining task if there is none exists
    * @returns 
    */
-  async do() {
-    if (!await this.isAllowed()) {
+  async react() {
+    if (! await this.isAllowed()) {
       this.disallow()
       return
     }

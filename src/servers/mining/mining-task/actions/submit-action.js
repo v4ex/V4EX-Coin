@@ -14,13 +14,17 @@ export default class SubmitAction extends Action {
   // PROVIDE this.isAllowed
   // OVERRIDDEN
   async isAllowed() {
-    return await this.isMinerUser() && await super.isAllowed()
+    if (! await super.isAllowed()) {
+      return false
+    }
+
+    return await this.isMinerUser() && this.isUserOwningTheResource
   }
 
-  // CHANGE this.resource | this.webSocketServer.miningTask -> this.webSocketServer.miningTask.#work
+  // CHANGE this.resource
   // CHANGE this.responseMessage
-  async do() {
-    if (!await this.isAllowed()) {
+  async react() {
+    if (! await this.isAllowed()) {
       this.disallow()
       return
     }

@@ -1,20 +1,24 @@
+import Resource from './resource.js'
 
 export default class Action {
 
   // ==========================================================================
   // For Customization
 
+  // OVERRIDE
   // PROVIDE this.isAllowed
   get isAllowed() {
     return true
   }
 
-  async do() {
-    if (this.isAllowed) {
-      this.responseMessage.setStatus(200) // "OK"
-    } else {
+  // CHANGE this.responseMessage
+  // OVERRIDE
+  async react() {
+    if (!await this.isAllowed()) {
       this.disallow()
+      return
     }
+    this.responseMessage.setStatus(200) // "OK"
   }
 
   // ==========================================================================
@@ -28,33 +32,18 @@ export default class Action {
   /**
    * 
    * @param {WebSocketServer} webSocketServer 
+   * @param {WebSocketSession} webSocketSession
    * @param {Resource} resource Target resource
-   * @param {User} user User model
    * @param {*} payload Payload in income message
    * @param {*} responseMessage Outgoing response message
    */
-  constructor(webSocketServer, resource, user, payload, responseMessage) {
+  constructor(webSocketServer, webSocketSession, resource, payload, responseMessage) {
     this.webSocketServer = webSocketServer
+    this.webSocketSession = webSocketSession
     this.resource = resource
-    this.user = user
+    this.user = webSocketSession.authenticationService.user
     this.payload = payload
     this.responseMessage = responseMessage
-  }
-
-  // PROVIDE this.isAllowed
-  // OVERRIDE
-  async isAllowed() {
-    return true
-  }
-
-  // CHANGE this.responseMessage
-  // OVERRIDE
-  async do() {
-    if (!await this.isAllowed()) {
-      this.disallow()
-      return
-    }
-    this.responseMessage.setStatus(200) // "OK"
   }
 
   // ==========================================================================
@@ -91,7 +80,7 @@ export default class Action {
     }
 
     try {
-      return this.webSocketServer.authorizationService.isOwnerOf(this.resourceModel)
+      return this.webSocketSession.authorizationService.isOwnerOf(this.resourceModel)
     } catch (error) {
       return false
     }
@@ -100,7 +89,7 @@ export default class Action {
   // PROVIDE this.isMinerUser
   async isMinerUser() {
     try {
-      return await this.webSocketServer.authorizationService.isMiner()
+      return await this.webSocketSession.authorizationService.isMiner()
     } catch (error) {
       return false
     }
@@ -109,7 +98,7 @@ export default class Action {
   // PROVIDE this.isBrokerUser
   async isBrokerUser() {
     try {
-      return await this.webSocketServer.authorizationService.isBroker()
+      return await this.webSocketSession.authorizationService.isBroker()
     } catch (error) {
       return false
     }
@@ -118,10 +107,19 @@ export default class Action {
   // PROVIDE this.isMinterUser
   async isMinterUser() {
     try {
-      return await this.webSocketServer.authorizationService.isMinter()
+      return await this.webSocketSession.authorizationService.isMinter()
     } catch (error) {
       return false
     }
+  }
+
+  // OVERRIDE
+  // PROVIDE this.isValidResource
+  get isValidResource() {
+    if (!(this.resource instanceof Resource)) {
+      return false
+    }
+    return true
   }
 
 }

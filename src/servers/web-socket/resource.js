@@ -29,8 +29,8 @@ export default class Resource {
     return ResourceActionsList
   }
 
-  // PROVIDE this.attributes
   // OVERRIDE
+  // PROVIDE this.attributes
   get attributes() {
     return {}
   }

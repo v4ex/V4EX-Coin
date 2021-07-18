@@ -17,10 +17,9 @@ export default class ViewAction extends Action {
     return await this.isMinterUser()
   }
 
-  // CHANGE this.webSocketServer
-  // CHANGE this.resource | this.webSocketServer.miningTask
+  // CHANGE this.resource
   // CHANGE this.responseMessage
-  async do() {
+  async react() {
     if (!await this.isAllowed()) {
       this.disallow()
       return

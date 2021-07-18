@@ -14,14 +14,18 @@ export default class SubmitAction extends Action {
   // PROVIDE this.isAllowed
   // OVERRIDDEN
   async isAllowed() {
+    if (! await super.isAllowed()) {
+      return false
+    }
+
     // TODO Brokering work check
     return await this.isBrokerUser()
   }
 
-  // CHANGE this.resource | this.webSocketServer.miningTask -> this.webSocketServer.miningTask.#work
+  // CHANGE this.resource
   // CHANGE this.responseMessage
-  async do() {
-    if (!await this.isAllowed()) {
+  async react() {
+    if (! await this.isAllowed()) {
       this.disallow()
       return
     }
