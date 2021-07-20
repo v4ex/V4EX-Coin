@@ -6,13 +6,13 @@ import Action from './action.js'
 //
 // Who: Miner
 //
-// Situation: Miner is trying to initialize his own Mining Task.
+// Situation: Miner is trying to revert initialization of his own Mining Task.
 
 
 // ============================================================================
 // 
 
-export default class InitializeAction extends Action {
+export default class RevertInitializeAction extends Action {
 
   // PROVIDE this.isAllowed
   // OVERRIDDEN
@@ -35,15 +35,19 @@ export default class InitializeAction extends Action {
     const miningTaskResource = this.resource
     const responseMessage = this.responseMessage
     
-    if (miningTaskResource.isInitialized) {
-      responseMessage.setStatus(409, "The Mining Task has been initialized before.") // "Conflict"
+    if (!miningTaskResource.isInitialized) {
+      responseMessage.setStatus(409, "The Mining Task has not been initialized yet. Use INITIALIZE.") // "Conflict"
     } else {
-      const initialized = await miningTaskResource.initialize().catch(error => {
-        responseMessage.setStatus(500, error.message) // Internal Server Error
-        return
-      })
-      if (initialized) {
-        responseMessage.setStatus(201, "The Mining Task is successfully initialized.") // "Created"
+      if (miningTaskResource.isEdited) {
+        responseMessage.setStatus(409, "The Mining Task has been edited before. Use CLEAR_EDIT.") // "Conflict"
+      } else {
+        const initializationReverted = await miningTaskResource.revertInitialize().catch(error => {
+          responseMessage.setStatus(500, error.message) // Internal Server Error
+          return
+        })
+        if (initializationReverted) {
+          responseMessage.setStatus(200, "Initialization of the Mining Task is successfully reverted.") // "OK"
+        }
       }
     }
 

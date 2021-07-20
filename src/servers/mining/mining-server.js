@@ -1,6 +1,6 @@
-import { default as WebSocketServer, ResponseMessage } from '../web-socket/web-socket-server.js'
+import WebSocketServer from '../web-socket/web-socket-server.js'
 
-import { default as MiningTaskResource, MiningTaskResourceActionsList } from './mining-task/mining-task-resource.js'
+import MiningTaskResource from './mining-task/mining-task-resource.js'
 
 
 // Single mining task

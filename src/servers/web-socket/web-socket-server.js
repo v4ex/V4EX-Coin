@@ -1,6 +1,7 @@
 // Durable Object with Web Socket and Auth features
 
-import WebSocketSession from "./web-socket-session.js"
+import WebSocketSession from './web-socket-session.js'
+import Resource from './resource.js'
 
 
 // ============================================================================
@@ -173,8 +174,7 @@ export default class WebSocketServer {
     const resourceSymbol = Symbol(key)
     this.resourcesRegistry.set(key, resourceSymbol)
 
-    const storedResource = await this.storage.get(key)
-    this[resourceSymbol] = new resourceClass(storedResource ?? init, this.storage, key)
+    this[resourceSymbol] = await Resource.create(resourceClass, init, this.storage, key)
   }
 
   getResource(key) {
