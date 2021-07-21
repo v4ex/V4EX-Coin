@@ -33,6 +33,7 @@ export default class WebSocketController extends Controller {
     return this[this.prefix](this.request, this.env, this.sub)
   }
 
+  // TODO Return 404 "Not Found" for invalid sub request
 
   // wss://${hostname}/mining?sub=${sub}
   async mining(request, env, sub) {

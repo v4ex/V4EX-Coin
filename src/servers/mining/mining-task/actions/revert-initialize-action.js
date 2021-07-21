@@ -35,18 +35,21 @@ export default class RevertInitializeAction extends Action {
     const miningTaskResource = this.resource
     const responseMessage = this.responseMessage
     
-    if (!miningTaskResource.isInitialized) {
-      responseMessage.setStatus(409, "The Mining Task has not been initialized yet. Use INITIALIZE.") // "Conflict"
+    if (!miningTaskResource.isInMinerStage) {
+      responseMessage.setStatus(403, "The Mining Task is out of Miner stage.") // "Forbidden"
     } else {
-      if (miningTaskResource.isEdited) {
-        responseMessage.setStatus(409, "The Mining Task has been edited before. Use CLEAR_EDIT.") // "Conflict"
+      if (!miningTaskResource.isInitialized) {
+        responseMessage.setStatus(409, "The Mining Task has not been initialized yet. Use INITIALIZE.") // "Conflict"
       } else {
-        const initializationReverted = await miningTaskResource.revertInitialize().catch(error => {
-          responseMessage.setStatus(500, error.message) // Internal Server Error
-          return
-        })
-        if (initializationReverted) {
-          responseMessage.setStatus(200, "Initialization of the Mining Task is successfully reverted.") // "OK"
+        if (miningTaskResource.isEdited) {
+          responseMessage.setStatus(409, "The Mining Task has been edited before. Use CLEAR_EDIT.") // "Conflict"
+        } else {
+          const initializationReverted = await miningTaskResource.revertInitialize().catch(error => {
+            responseMessage.setStatus(500, error.message) // Internal Server Error
+          })
+          if (initializationReverted) {
+            responseMessage.setStatus(200, "Initialization of the Mining Task is successfully reverted.") // "OK"
+          }
         }
       }
     }

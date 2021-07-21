@@ -35,20 +35,24 @@ export default class EditAction extends Action {
     const responseMessage = this.responseMessage
     const payload = this.payload
 
-    if (!miningTaskResource.isInitialized) {
-      responseMessage.setStatus(409, "The Mining Task has not been initialized yet. Use INITIALIZE.") // "Conflict"
+    if (!miningTaskResource.isInMinerStage) {
+      responseMessage.setStatus(403, "The Mining Task is out of Miner stage.") // "Forbidden"
     } else {
-      if (miningTaskResource.isSubmitted) {
-        responseMessage.setStatus(409, "The Mining Task has been submitted. Use REVERT_SUBMIT.") // "Conflict"
+      if (!miningTaskResource.isInitialized) {
+        responseMessage.setStatus(409, "The Mining Task has not been initialized yet. Use INITIALIZE.") // "Conflict"
       } else {
-        const edited = await miningTaskResource.edit(payload.work).catch(error => {
-          responseMessage.setStatus(500, error.message) // Internal Server Error
-          return
-        })
-        if (edited) {
-          responseMessage.setStatus(200, "The Mining Task is successfully edited with valid work information.") // "OK"
+        if (miningTaskResource.isSubmitted) {
+          responseMessage.setStatus(409, "The Mining Task has been submitted. Use REVERT_SUBMIT.") // "Conflict"
         } else {
-          responseMessage.setStatus(406, "The Mining Task is failed to be edited. The work information is failed in validation.") // "Not Acceptable"
+          const edited = await miningTaskResource.edit(payload.work).catch(error => {
+            responseMessage.setStatus(500, error.message) // Internal Server Error
+            return
+          })
+          if (edited) {
+            responseMessage.setStatus(200, "The Mining Task is successfully edited with valid work information.") // "OK"
+          } else {
+            responseMessage.setStatus(406, "The Mining Task is failed to be edited. The work information is failed in validation.") // "Not Acceptable"
+          }
         }
       }
     }

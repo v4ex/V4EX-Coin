@@ -14,6 +14,7 @@ import RevertInitializeAction from './actions/revert-initialize-action.js'
 import EditAction from './actions/edit-action.js'
 import ClearEditAction from './actions/clear-edit-action.js'
 import SubmitAction from './actions/submit-action.js'
+import RevertSubmitAction from './actions/revert-submit-action.js'
 import ProceedAction from './actions/proceed-action.js'
 import RejectAction from './actions/reject-action.js'
 import ResetAction from './actions/reset-action.js'
@@ -32,11 +33,12 @@ export const MiningTaskResourceActionsList = new Map(Object.entries({
   'REVERT_INITIALIZE': RevertInitializeAction,
   'EDIT': EditAction,
   'CLEAR_EDIT': ClearEditAction,
+  'SUBMIT': SubmitAction,
+  'REVERT_SUBMIT': RevertSubmitAction,
+  'RESUBMIT': ResubmitAction,
   'PROCEED': ProceedAction,
   'REJECT': RejectAction,
   'RESET': ResetAction,
-  'RESUBMIT': ResubmitAction,
-  'SUBMIT': SubmitAction,
 }))
 
 // ============================================================================
@@ -261,7 +263,7 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.isInMinerStage
   get isInMinerStage() {
-    if (!this.isProceeded || this.isFinished) {
+    if (!this.isProceeded) {
       return true
     }
     return false
@@ -375,21 +377,39 @@ export default class MiningTaskResource extends Resource {
       return false
     }
 
+    const original = {
+      submittedAt: this.#timestamps.submittedAt
+    }
+
     this.#timestamps.submittedAt = Date.now()
 
-    return await this.save()
+    await this.save().catch(error => {
+      this.#timestamps.submittedAt = original.submittedAt
+      throw new Error(error)
+    })
+
+    return true
   }
 
   // CHANGE this.#timestamps.submittedAt
   async revertSubmit() {
     // Prerequisite check
-    if (!this.isSubmitted || this.isProceeded) {
+    if (this.isProceeded || !this.isSubmitted || !this.isInitialized || !this.isEdited) {
       return false
+    }
+
+    const original = {
+      submittedAt: this.#timestamps.submittedAt
     }
 
     this.#timestamps.submittedAt = undefined
 
-    return await this.save()
+    await this.save().catch(error => {
+      this.#timestamps.submittedAt = original.submittedAt
+      throw new Error(error)
+    })
+
+    return true
   }
 
   // TODO

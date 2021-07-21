@@ -5,13 +5,13 @@ import Action from './action.js'
 //
 // Who: Miner
 //
-// Situation: Miner is trying to submit his own Mining Task for verification.
+// Situation: Miner is trying to revert submit of his own Mining Task.
 
 
 // ============================================================================
 // 
 
-export default class SubmitAction extends Action {
+export default class RevertSubmitAction extends Action {
 
   // PROVIDE this.isAllowed
   // OVERRIDDEN
@@ -43,14 +43,14 @@ export default class SubmitAction extends Action {
         if (!miningTaskResource.isEdited) {
           responseMessage.setStatus(409, "The Mining Task has not been edited yet. Use EDIT.") // "Conflict"
         } else {
-          if (miningTaskResource.isSubmitted) {
-            responseMessage.setStatus(409, "The Mining Task has been submitted before. Use REVERT_SUBMIT.") // "Conflict"
+          if (!miningTaskResource.isSubmitted) {
+            responseMessage.setStatus(409, "The Mining Task has not been submitted yet. Use SUBMIT.") // "Conflict"
           } else {
-            const submitted = await miningTaskResource.submit().catch(error => {
+            const revertSubmitted = await miningTaskResource.revertSubmit().catch(error => {
               responseMessage.setStatus(500, error.message) // Internal Server Error
             })
-            if (submitted) {
-              responseMessage.setStatus(200, "The Mining Task is successfully submitted.") // "OK"
+            if (revertSubmitted) {
+              responseMessage.setStatus(200, "Submit of the Mining Task is successfully reverted.") // "OK"
             }
           }
         }
