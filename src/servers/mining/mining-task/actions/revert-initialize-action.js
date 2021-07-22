@@ -26,38 +26,8 @@ export default class RevertInitializeAction extends Action {
 
   // CHANGE this.resource
   // CHANGE this.responseMessage
-  async react() {
-    if (! await this.isAllowed()) {
-      this.disallow()
-      return
-    }
-
-    const miningTaskResource = this.resource
-    const responseMessage = this.responseMessage
-    
-    if (!miningTaskResource.isInMinerStage) {
-      responseMessage.setStatus(403, "The Mining Task is out of Miner stage.") // "Forbidden"
-    } else {
-      if (!miningTaskResource.isInitialized) {
-        responseMessage.setStatus(409, "The Mining Task has not been initialized yet. Use INITIALIZE.") // "Conflict"
-      } else {
-        if (miningTaskResource.isEdited) {
-          responseMessage.setStatus(409, "The Mining Task has been edited before. Use CLEAR_EDIT.") // "Conflict"
-        } else {
-          const initializationReverted = await miningTaskResource.revertInitialize().catch(error => {
-            responseMessage.setStatus(500, error.message) // Internal Server Error
-          })
-          if (initializationReverted) {
-            responseMessage.setStatus(200, "Initialization of the Mining Task is successfully reverted.") // "OK"
-          }
-        }
-      }
-    }
-
-    // Add data to payload
-    if (responseMessage.status < 400) {
-      responseMessage.payload.miningTask = miningTaskResource.toModel()
-    }
+  async do() {
+    await this.doRevertOperate('miner', 'initialize', 'initialized')
   }
 
 }

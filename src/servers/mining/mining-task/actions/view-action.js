@@ -43,28 +43,9 @@ export default class ViewAction extends Action {
   }
 
   // CHANGE this.responseMessage
-  async react() {
-    if (! await this.isAllowed()) {
-      this.disallow()
-      return
-    }
-    
-    const miningTaskResource = this.resource
-    const responseMessage = this.responseMessage
-
-    if (miningTaskResource.isInitialized) {
-      responseMessage.setStatus(200, "The Mining Task is successfully retrieved.") // "OK"
-    } else {
-      if (await this.isMinerUser()) {
-        responseMessage.setStatus(206, "The Mining Task has not been initialized yet. Use INITIALIZE.") // "Partial Content"
-      } else {
-        responseMessage.setStatus(206, "The Mining Task has not been initialized yet.") // "Partial Content"
-      }
-    }
-
-    // Add data to payload
-    if (responseMessage.status < 400) {
-      responseMessage.payload.miningTask = miningTaskResource.toModel()
+  async do() {
+    if (this.resource.canView) {
+      this.responseMessage.setStatus(200, "The Mining Task is successfully viewed.")
     }
   }
 

@@ -18,8 +18,7 @@ import RevertSubmitAction from './actions/revert-submit-action.js'
 import ProceedAction from './actions/proceed-action.js'
 import RejectAction from './actions/reject-action.js'
 import ResetAction from './actions/reset-action.js'
-import ResubmitAction from './actions/resubmit-action.js'
-
+import ReleaseMinerAction from './actions/release-miner-action.js'
 
 
 
@@ -35,9 +34,10 @@ export const MiningTaskResourceActionsList = new Map(Object.entries({
   'CLEAR_EDIT': ClearEditAction,
   'SUBMIT': SubmitAction,
   'REVERT_SUBMIT': RevertSubmitAction,
-  'RESUBMIT': ResubmitAction,
-  'PROCEED': ProceedAction,
   'REJECT': RejectAction,
+  'PROCEED': ProceedAction,
+  'RELEASE_MINER': ReleaseMinerAction,
+
   'RESET': ResetAction,
 }))
 
@@ -171,11 +171,11 @@ export default class MiningTaskResource extends Resource {
     try {
       await this.#storage.put(this.#key, { sub: this.#sub })
 
-      this.#id = undefined
-      this.#work = undefined
+      this.#id = null
+      this.#work = null
       
       for (const key in this.#timestamps) {
-        this.#timestamps[key] = undefined
+        this.#timestamps[key] = null
       }
 
       return true
@@ -210,17 +210,12 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.isRejected
   get isRejected() {
-    return this.isSubmitted && this.#timestamps.rejectedAt != null && this.#timestamps.rejectedAt > this.#timestamps.submittedAt
-  }
-
-  // PROVIDE this.isRejectedBefore
-  get isRejectedBefore() {
-    return this.#timestamps.rejectedAt != null
+    return this.isSubmitted && this.#timestamps.rejectedAt != null
   }
 
   // PROVIDE this.isProceeded
   get isProceeded() {
-    return this.isEdited && this.#timestamps.proceededAt != null
+    return this.isSubmitted && this.#timestamps.proceededAt != null
   }
 
   // PROVIDE this.isConfirmed
@@ -231,11 +226,6 @@ export default class MiningTaskResource extends Resource {
   // PROVIDE this.isDenied
   get isDenied() {
     return this.isConfirmed && this.#timestamps.deniedAt != null && this.#timestamps.deniedAt > this.#timestamps.confirmedAt
-  }
-
-  // PROVIDE this.isDeniedBefore
-  get isDeniedBefore() {
-    return this.#timestamps.deniedAt != null
   }
 
   // PROVIDE this.isAdmitted
@@ -259,14 +249,27 @@ export default class MiningTaskResource extends Resource {
   }
 
   // ==========================================================================
+  // Multiple Stages Operation
+
+  // PROVIDE this.canView
+  get canView() {
+    return true
+  }
+
+  // ==========================================================================
   // Miner Stage Operations
 
   // PROVIDE this.isInMinerStage
   get isInMinerStage() {
-    if (!this.isProceeded) {
+    if (!this.isRejected || !this.isProceeded) {
       return true
     }
     return false
+  }
+
+  // PROVIDE this.canInitialize
+  get canInitialize() {
+    return !this.isInitialized
   }
 
   // CHANGE this.#id
@@ -284,12 +287,17 @@ export default class MiningTaskResource extends Resource {
     this.#timestamps.initializedAt = Date.now()
 
     await this.save().catch(error => {
-      this.#id = undefined
-      this.#timestamps.initializedAt = undefined
+      this.#id = null
+      this.#timestamps.initializedAt = null
       throw new Error(error)
     })
 
     return true
+  }
+
+  // PROVIDE this.canRevertInitialize
+  get canRevertInitialize() {
+    return !this.isEdited && this.isInitialized
   }
 
   // CHANGE this.#id
@@ -303,8 +311,8 @@ export default class MiningTaskResource extends Resource {
       id: this.#id,
       initializedAt: this.#timestamps.initializedAt
     }
-    this.#id = undefined
-    this.#timestamps.initializedAt = undefined
+    this.#id = null
+    this.#timestamps.initializedAt = null
 
     await this.save().catch(error => {
       this.#id = original.id
@@ -313,6 +321,11 @@ export default class MiningTaskResource extends Resource {
     })
 
     return true
+  }
+
+  // PROVIDE this.canEdit
+  get canEdit() {
+    return !this.isSubmitted && this.isInitialized
   }
 
   // CAREFUL: USER_INPUT
@@ -345,6 +358,11 @@ export default class MiningTaskResource extends Resource {
     return false
   }
 
+  // PROVIDE this.canClearEdit
+  get canClearEdit() {
+    return !this.isSubmitted && this.isEdited && this.isInitialized
+  }
+
   // CHANGE this.#timestamps.editedAt
   // CHANGE this.#work
   async clearEdit() {
@@ -358,8 +376,8 @@ export default class MiningTaskResource extends Resource {
       editedAt: this.#timestamps.editedAt
     }
 
-    this.#work = undefined
-    this.#timestamps.editedAt = undefined
+    this.#work = null
+    this.#timestamps.editedAt = null
 
     await this.save().catch(error => {
       this.#work = original.work
@@ -368,6 +386,11 @@ export default class MiningTaskResource extends Resource {
     })
 
     return true
+  }
+
+  // PROVIDE this.canSubmit
+  get canSubmit() {
+    return !this.isSubmitted && this.isEdited && this.isInitialized
   }
 
   // CHANGE this.#timestamps.submittedAt
@@ -391,6 +414,11 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+    // PROVIDE this.canRevertSubmit
+    get canRevertSubmit() {
+      return !this.isProceeded && this.isSubmitted && this.isEdited && this.isInitialized
+    }
+
   // CHANGE this.#timestamps.submittedAt
   async revertSubmit() {
     // Prerequisite check
@@ -402,7 +430,7 @@ export default class MiningTaskResource extends Resource {
       submittedAt: this.#timestamps.submittedAt
     }
 
-    this.#timestamps.submittedAt = undefined
+    this.#timestamps.submittedAt = null
 
     await this.save().catch(error => {
       this.#timestamps.submittedAt = original.submittedAt
@@ -419,7 +447,7 @@ export default class MiningTaskResource extends Resource {
     // submit
   }
 
-  async reboot() {
+  async restart() {
     await this.reset()
   }
 
@@ -434,30 +462,103 @@ export default class MiningTaskResource extends Resource {
     return false
   }
 
+  // PROVIDE this.canReject
+  get canReject() {
+    if (this.isSubmitted && !this.isConfirmed && !this.isRejected) {
+      return true
+    }
+    return false
+  }
+
   // CHANGE this.#timestamps.rejectedAt
   // CHANGE this.#timestamps.proceededAt
   async reject() {
-    if (this.isRejected || this.isConfirmed) {
+    if (!this.canReject) {
       return false
     }
 
+    const original = {
+      proceededAt: this.#timestamps.proceededAt,
+      rejectedAt: this.#timestamps.rejectedAt
+    }
+    this.#timestamps.proceededAt = null
     this.#timestamps.rejectedAt = Date.now()
-    this.#timestamps.proceededAt = undefined
 
-    return await this.save()
+    await this.save().catch(error => {
+      this.#timestamps.proceededAt = original.proceededAt
+      this.#timestamps.proceededAt = original.rejectedAt
+      throw new Error(error)
+    })
+
+    return true
+  }
+
+  // PROVIDE this.canProceed
+  get canProceed() {
+    if (this.isSubmitted && !this.isConfirmed && !this.isProceeded) {
+      return true
+    }
+    return false
   }
 
   // CHANGE this.#timestamps.proceededAt
   // CHANGE this.#timestamps.rejectedAt
   async proceed() {
-    if (this.isProceeded || this.isConfirmed) {
+    if (!this.canProceed) {
       return false
     }
 
+    const original = {
+      proceededAt: this.#timestamps.proceededAt,
+      rejectedAt: this.#timestamps.rejectedAt
+    }
     this.#timestamps.proceededAt = Date.now()
-    this.#timestamps.rejectedAt = undefined
+    this.#timestamps.rejectedAt = null
 
-    return await this.save()
+    await this.save().catch(error => {
+      this.#timestamps.proceededAt = original.proceededAt
+      this.#timestamps.proceededAt = original.rejectedAt
+      throw new Error(error)
+    })
+
+    return true
+  }
+
+  // PROVIDE this.canReleaseMiner
+  get canReleaseMiner() {
+    if (this.isSubmitted && !this.isConfirmed) {
+      if (this.isRejected || this.isProceeded) {
+        return true
+      }
+    }
+    return false
+  }
+
+  // CHANGE this.#timestamps.proceededAt
+  // CHANGE this.#timestamps.rejectedAt
+  // CHANGE this.#timestamps.submittedAt
+  async releaseMiner() {
+    if (!this.canReleaseMiner) {
+      return false
+    }
+
+    const original = {
+      submittedAt: this.#timestamps.submittedAt,
+      proceededAt: this.#timestamps.proceededAt,
+      rejectedAt: this.#timestamps.rejectedAt
+    }
+    this.#timestamps.submittedAt = null
+    this.#timestamps.proceededAt = null
+    this.#timestamps.rejectedAt = null
+
+    await this.save().catch(error => {
+      this.#timestamps.submittedAt = original.submittedAt
+      this.#timestamps.proceededAt = original.proceededAt
+      this.#timestamps.proceededAt = original.rejectedAt
+      throw new Error(error)
+    })
+
+    return true
   }
 
   // CHANGE this.#timestamps.confirmedAt
@@ -566,6 +667,11 @@ export default class MiningTaskResource extends Resource {
   // PROVIDE this.minerId
   get minerId() {
     return this.#sub
+  }
+
+  // PROVIDE this.key
+  get key() {
+    return this.#key
   }
 
 }

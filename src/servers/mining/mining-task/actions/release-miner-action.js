@@ -3,30 +3,29 @@ import Action from './action.js'
 // ============================================================================
 // Permissions
 //
-// Who: Miner
-//
-// Situation: Miner is trying to submit his own Mining Task for verification.
+// Situation: Broker is trying to release the brokering Mining Task of the specific Miner to the Miner.
 
 
 // ============================================================================
 // 
 
-export default class SubmitAction extends Action {
+export default class ReleaseMinerAction extends Action {
 
-  // PROVIDE this.isAllowed
   // OVERRIDDEN
+  // PROVIDE this.isAllowed
   async isAllowed() {
     if (! await super.isAllowed()) {
       return false
     }
 
-    return await this.isMinerUser() && this.isUserOwningTheResource
+    return await this.isMatchedBrokeringMiningTask()
   }
 
   // CHANGE this.resource
   // CHANGE this.responseMessage
+  // OVERRIDDEN
   async do() {
-    await this.doOperate('miner', 'submit', 'submitted')
+    this.doReleaseOperate('broker', 'miner', 'releaseMiner', 'released')
   }
 
 }

@@ -5,20 +5,40 @@ export default class Action {
   // ==========================================================================
   // For Customization
 
+  // HOOK
   // OVERRIDE
   // PROVIDE this.isAllowed
   get isAllowed() {
     return true
   }
 
-  // CHANGE this.responseMessage
+  // HOOK
   // OVERRIDE
+  async do() {
+    this.responseMessage.setStatus(200) // "OK"
+  }
+
+  // CHANGE this.responseMessage
+  // HOOK
+  // OVERRIDE_ADVANCED
   async react() {
     if (!await this.isAllowed()) {
       this.disallow()
       return
     }
-    this.responseMessage.setStatus(200) // "OK"
+    
+    // HOOK
+    await this.do()
+
+    // Attach resource to payload
+    if (this.responseMessage.status < 400) {
+      this.responseMessage.payload[this.resource.key] = this.resourceModel
+    }
+
+    // Advise client to use HELP.
+    if (this.responseMessage.status >= 400 && this.responseMessage.status < 500) {
+      this.responseMessage.statusMessage.concat(" Use HELP to get more information.")
+    }
   }
 
   // ==========================================================================
