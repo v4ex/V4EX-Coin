@@ -15,11 +15,17 @@ import EditAction from './actions/edit-action.js'
 import ClearEditAction from './actions/clear-edit-action.js'
 import SubmitAction from './actions/submit-action.js'
 import RevertSubmitAction from './actions/revert-submit-action.js'
-import ProceedAction from './actions/proceed-action.js'
 import RejectAction from './actions/reject-action.js'
-import ResetAction from './actions/reset-action.js'
+import ProceedAction from './actions/proceed-action.js'
 import ReleaseMinerAction from './actions/release-miner-action.js'
+import ConfirmAction from './actions/confirm-action.js'
+import RevertConfirmAction from './actions/revert-confirm-action.js'
+import DenyAction from './actions/deny-action.js'
+import AdmitAction from './actions/admit-action.js'
+import ReleaseBrokerAction from './actions/release-broker-action.js'
 
+
+import ResetAction from './actions/reset-action.js'
 
 
 // ============================================================================
@@ -37,6 +43,12 @@ export const MiningTaskResourceActionsList = new Map(Object.entries({
   'REJECT': RejectAction,
   'PROCEED': ProceedAction,
   'RELEASE_MINER': ReleaseMinerAction,
+  'CONFIRM': ConfirmAction,
+  'REVERT_CONFIRM': RevertConfirmAction,
+  'DENY': DenyAction,
+  'ADMIT': AdmitAction,
+  'RELEASE_BROKER': ReleaseBrokerAction,
+
 
   'RESET': ResetAction,
 }))
@@ -76,20 +88,9 @@ export default class MiningTaskResource extends Resource {
     publishedAt: null,
     finishedAt: null
   }
-
-  // Miner stage
-  #timestampInitialized
-  #timestampEdited
-  #timestampSubmitted
-  // Broker stage
-  #timestampCommitted
-  #timestampRejected
-  #timestampProceeded
-  #timestampConfirmed
   //
   #work
 
-  // TODO Add #timestampRejected, to restrict resubmit operation
   // PROVIDE this.#storage
   // PROVIDE this.#key
   // PROVIDE this.#id
@@ -186,7 +187,7 @@ export default class MiningTaskResource extends Resource {
 
   // ==========================================================================
   // States
-  // != null loose comparison for undefined and null.
+  // FIXME != null loose comparison for undefined and null.
 
   // PROVIDE this.isInitialized
   get isInitialized() {
@@ -225,27 +226,27 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.isDenied
   get isDenied() {
-    return this.isConfirmed && this.#timestamps.deniedAt != null && this.#timestamps.deniedAt > this.#timestamps.confirmedAt
+    return this.isConfirmed && this.#timestamps.deniedAt != null
   }
 
   // PROVIDE this.isAdmitted
   get isAdmitted() {
-    return this.#timestamps.admittedAt != null
+    return this.isConfirmed && this.#timestamps.admittedAt != null
   }
 
   // PROVIDE this.isSettled
   get isSettled() {
-    return this.#timestamps.settledAt != null
+    return this.isAdmitted && this.#timestamps.settledAt != null
   }
 
   // PROVIDE this.isPublished
   get isPublished() {
-    return this.#timestamps.publishedAt != null
+    return this.isSettled && this.#timestamps.publishedAt != null
   }
 
   // PROVIDE this.isFinished
   get isFinished() {
-    return this.#timestamps.finishedAt != null
+    return this.isPublished && this.#timestamps.finishedAt != null
   }
 
   // ==========================================================================
@@ -261,10 +262,7 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.isInMinerStage
   get isInMinerStage() {
-    if (!this.isRejected || !this.isProceeded) {
-      return true
-    }
-    return false
+    return !this.isProceeded && !this.isRejected
   }
 
   // PROVIDE this.canInitialize
@@ -278,7 +276,7 @@ export default class MiningTaskResource extends Resource {
    * Initialized Mining Task has random id and timestampInitialized.
    */
   async initialize() {
-    if (this.isInitialized) {
+    if (this.canInitialize) {
       return false
     }
 
@@ -360,14 +358,14 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.canClearEdit
   get canClearEdit() {
-    return !this.isSubmitted && this.isEdited && this.isInitialized
+    return !this.isSubmitted && this.isEdited
   }
 
   // CHANGE this.#timestamps.editedAt
   // CHANGE this.#work
   async clearEdit() {
     // Prerequisite check
-    if (!this.isInitialized || !this.isEdited || this.isSubmitted) {
+    if (this.canClearEdit) {
       return false
     }
 
@@ -390,13 +388,13 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.canSubmit
   get canSubmit() {
-    return !this.isSubmitted && this.isEdited && this.isInitialized
+    return !this.isSubmitted && this.isEdited
   }
 
   // CHANGE this.#timestamps.submittedAt
   async submit() {
     // Prerequisite check
-    if (this.isSubmitted || !this.isInitialized || !this.isEdited) {
+    if (!this.canSubmit) {
       return false
     }
 
@@ -416,13 +414,13 @@ export default class MiningTaskResource extends Resource {
 
     // PROVIDE this.canRevertSubmit
     get canRevertSubmit() {
-      return !this.isProceeded && this.isSubmitted && this.isEdited && this.isInitialized
+      return !this.isProceeded && this.isSubmitted
     }
 
   // CHANGE this.#timestamps.submittedAt
   async revertSubmit() {
     // Prerequisite check
-    if (this.isProceeded || !this.isSubmitted || !this.isInitialized || !this.isEdited) {
+    if (!this.canRevertSubmit) {
       return false
     }
 
@@ -441,12 +439,6 @@ export default class MiningTaskResource extends Resource {
   }
 
   // TODO
-  async resubmit() {
-    // revertSubmit
-    // edit
-    // submit
-  }
-
   async restart() {
     await this.reset()
   }
@@ -456,8 +448,10 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.isInBrokerStage
   get isInBrokerStage() {
-    if (this.isSubmitted && !this.isAdmitted) {
-      return true
+    if (this.isSubmitted) {
+      if (!this.isAdmitted && !this.isDenied) {
+        return true
+      }
     }
     return false
   }
@@ -526,8 +520,8 @@ export default class MiningTaskResource extends Resource {
 
   // PROVIDE this.canReleaseMiner
   get canReleaseMiner() {
-    if (this.isSubmitted && !this.isConfirmed) {
-      if (this.isRejected || this.isProceeded) {
+    if (!this.isConfirmed && this.isSubmitted) {
+      if (this.isProceeded || this.isRejected) {
         return true
       }
     }
@@ -561,61 +555,160 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // PROVIDE this.canConfirm
+  get canConfirm() {
+    if (!this.isConfirmed && this.isProceeded) {
+      return true
+    }
+    return false
+  }
+
   // CHANGE this.#timestamps.confirmedAt
   async confirm() {
-    if (this.isConfirmed || !this.isProceeded || this.isRejected) {
+    if (!this.canConfirm) {
       return false
     }
 
+    const original = {
+      confirmedAt: this.#timestamps.confirmedAt
+    }
     this.#timestamps.confirmedAt = Date.now()
 
-    return await this.save()
+    await this.save().catch(error => {
+      this.#timestamps.confirmedAt = original.confirmedAt
+      throw new Error(error)
+    })
+
+    return true
   }
+
+  // PROVIDE this.canRevertConfirm
+  get canRevertConfirm() {
+    if (this.isConfirmed && !this.isAdmitted && !this.isDenied) {
+      return true
+    }
+    return false
+  }
+
+  // CHANGE this.#timestamps.confirmedAt
+  async revertConfirm() {
+    if (!this.canRevertConfirm) {
+      return false
+    }
+
+    const original = {
+      confirmedAt: this.#timestamps.confirmedAt
+    }
+    this.#timestamps.confirmedAt = null
+
+    await this.save().catch(error => {
+      this.#timestamps.confirmedAt = original.confirmedAt
+      throw new Error(error)
+    })
+
+    return true
+  }
+
 
   // ==========================================================================
   // Minter Stage Operations
 
   // PROVIDE this.isInMinterStage
   get isInMinterStage() {
-    if (this.isConfirmed && !this.isSettled) {
-      return true
+    return this.isConfirmed && !this.isSettled
+  }
+
+  // PROVIDE this.canDeny
+  get canDeny() {
+    return !this.isDenied && this.isConfirmed
+  }
+
+  // CHANGE this.#timestamps.admittedAt
+  // CHANGE this.#timestamps.deniedAt
+  async deny() {
+    if (!this.canDeny) {
+      return false
+    }
+
+    const original = {
+      admittedAt: this.#timestamps.admittedAt,
+      deniedAt: this.#timestamps.deniedAt
+    }
+    this.#timestamps.admittedAt = null
+    this.#timestamps.deniedAt = Date.now()
+
+    await this.save().catch(error => {
+      this.#timestamps.admittedAt = original.admittedAt
+      this.#timestamps.deniedAt = original.deniedAt
+      throw new Error(error)
+    })
+
+    return true
+  }
+
+  // PROVIDE this.canAdmit
+  get canAdmit() {
+    return !this.isAdmitted && this.isConfirmed
+  }
+
+  // CHANGE this.#timestamps.admittedAt
+  // CHANGE this.#timestamps.deniedAt
+  async admit() {
+    if (!this.canAdmit) {
+      return false
+    }
+
+    const original = {
+      admittedAt: this.#timestamps.admittedAt,
+      deniedAt: this.#timestamps.deniedAt
+    }
+    this.#timestamps.admittedAt = Date.now()
+    this.#timestamps.deniedAt = null
+
+    await this.save().catch(error => {
+      this.#timestamps.admittedAt = original.admittedAt
+      this.#timestamps.deniedAt = original.deniedAt
+      throw new Error(error)
+    })
+
+    return true
+  }
+
+  // PROVIDE this.canReleaseBroker
+  get canReleaseBroker() {
+    if (!this.isSettled && this.isConfirmed) {
+      if (this.isAdmitted || this.isDenied) {
+        return true
+      }
     }
     return false
   }
 
   // CHANGE this.#timestamps.admittedAt
-  async admit() {
-    if (!this.isInMinterStage || this.isAdmitted) {
-      return false
-    }
-
-    this.#timestamps.admittedAt = Date.now()
-
-    return await this.save()
-  }
-
   // CHANGE this.#timestamps.deniedAt
-  async deny() {
-    if (!this.isInMinterStage || this.isDenied) {
+  // CHANGE this.#timestamps.confirmedAt
+  async releaseBroker() {
+    if (!this.canReleaseBroker) {
       return false
     }
 
-    this.#timestamps.deniedAt = Date.now()
-
-    return await this.save()
-  }
-
-  // CHANGE this.#timestamps.admittedAt
-  // CHANGE this.#timestamps.deniedAt
-  async unset() {
-    if (!this.isInMinterStage) {
-      return false
+    const original = {
+      admittedAt: this.#timestamps.admittedAt,
+      deniedAt: this.#timestamps.deniedAt,
+      confirmedAt: this.#timestamps.confirmedAt
     }
+    this.#timestamps.admittedAt = null
+    this.#timestamps.deniedAt = null
+    this.#timestamps.confirmedAt = null
 
-    this.#timestamps.admittedAt = undefined
-    this.#timestamps.deniedAt = undefined
+    await this.save().catch(error => {
+      this.#timestamps.admittedAt = original.admittedAt
+      this.#timestamps.deniedAt = original.deniedAt
+      this.#timestamps.confirmedAt = original.confirmedAt
+      throw new Error(error)
+    })
 
-    return await this.save()
+    return true
   }
 
   // ==========================================================================

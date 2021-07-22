@@ -156,21 +156,25 @@ export default class Action extends BaseAction {
     const Role = _.upperFirst(role)
     const PreviousRole = _.upperFirst(previousRole)
     const Operate = _.upperFirst(operate)
-    
-    if (!miningTaskResource[`can${Operate}`]) {
-      responseMessage.setStatus(400, `${Operate} can not be applied to the current ${RESOURCE}.`) // "Bad Request"
+
+    if(!miningTaskResource[`isIn${Role}Stage`]) {
+      responseMessage.setStatus(403, `The ${RESOURCE} is not in ${Role} stage.`) // "Forbidden"
     } else {
-      await miningTaskResource[operate]()
-        .then(isProcessed => {
-          if (isProcessed) {
-            responseMessage.setStatus(200, `The ${RESOURCE} is successfully ${operated} from ${Role} to ${PreviousRole}.`) // "OK"
-          } else {
-            responseMessage.setStatus(400, `The ${RESOURCE} is failed to be ${operated} from ${Role} to ${PreviousRole}.`) // "Bad Request"
-          }
-        })
-        .catch(error => {
-          responseMessage.setStatus(500, error.message) // Internal Server Error
-        })
+      if (!miningTaskResource[`can${Operate}`]) {
+        responseMessage.setStatus(400, `${Operate} can not be applied to the current ${RESOURCE}.`) // "Bad Request"
+      } else {
+        await miningTaskResource[operate]()
+          .then(isProcessed => {
+            if (isProcessed) {
+              responseMessage.setStatus(200, `The ${RESOURCE} is successfully ${operated} from ${Role} to ${PreviousRole}.`) // "OK"
+            } else {
+              responseMessage.setStatus(400, `The ${RESOURCE} is failed to be ${operated} from ${Role} to ${PreviousRole}.`) // "Bad Request"
+            }
+          })
+          .catch(error => {
+            responseMessage.setStatus(500, error.message) // Internal Server Error
+          })
+      }
     }
   }
 

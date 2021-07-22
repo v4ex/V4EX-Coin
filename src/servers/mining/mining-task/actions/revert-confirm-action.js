@@ -4,14 +4,14 @@ import Action from './action.js'
 // ============================================================================
 // Permissions
 //
-// Situation: Broker is trying to confirm the brokering Mining Task of specific Miner.
+// Situation: Broker is trying to revert confirm the brokering Mining Task of the specific Miner.
 
 
 // ============================================================================
 // 
 
 
-export default class ConfirmAction extends Action {
+export default class RevertConfirmAction extends Action {
 
   // OVERRIDDEN
   // PROVIDE this.isAllowed
@@ -27,7 +27,7 @@ export default class ConfirmAction extends Action {
   // CHANGE this.responseMessage
   // OVERRIDDEN
   async do() {
-    await this.doOperate('broker', 'confirm', 'confirmed')
+    await this.doRevertOperate('broker', 'confirm', 'confirmed')
   }
 
 }

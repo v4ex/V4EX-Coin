@@ -1,17 +1,15 @@
-
 import Action from './action.js'
 
 // ============================================================================
 // Permissions
 //
-// Situation: Broker is trying to confirm the brokering Mining Task of specific Miner.
+// Situation: Minter is trying to release the Mining Task of the specific Miner to the corresponding Broker.
 
 
 // ============================================================================
 // 
 
-
-export default class ConfirmAction extends Action {
+export default class ReleaseBrokerAction extends Action {
 
   // OVERRIDDEN
   // PROVIDE this.isAllowed
@@ -20,14 +18,14 @@ export default class ConfirmAction extends Action {
       return false
     }
 
-    return await this.isMatchedBrokeringMiningTask()
+    return await this.isMinterUser()
   }
 
   // CHANGE this.resource
   // CHANGE this.responseMessage
   // OVERRIDDEN
   async do() {
-    await this.doOperate('broker', 'confirm', 'confirmed')
+    this.doReleaseOperate('minter', 'broker', 'releaseBroker', 'released')
   }
 
 }
