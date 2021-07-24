@@ -1,5 +1,5 @@
-import AuthenticationService from '../../services/authentication-service.js'
-import AuthorizationService from '../../services/authorization-service.js'
+import Authentication from '../../auth/authentication.js'
+import Authorization from '../../auth/authorization.js'
 
 import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
@@ -30,6 +30,15 @@ export class ResponseMessage {
 
 export default class WebSocketSession {
 
+  // PROVIDE this.authentication
+  // PROVIDE this.authorization
+  // PROVIDE this.id
+  // PROVIDE this.ipAddress
+  // PROVIDE this.managementToken
+  // PROVIDE this.request
+  // PROVIDE this.sessionsManager
+  // PROVIDE this.webSocket
+  // PROVIDE this.webSocketServer
   constructor(webSocketServer, webSocket, request, managementToken) {
     this.webSocketServer = webSocketServer
     this.sessionsManager = webSocketServer.sessionsManager
@@ -38,8 +47,8 @@ export default class WebSocketSession {
     this.webSocket = webSocket
     this.request = request
     this.managementToken = managementToken
-    this.authenticationService = new AuthenticationService(managementToken)
-    this.authorizationService = new AuthorizationService(this.authenticationService, managementToken)
+    this.authentication = new Authentication(managementToken)
+    this.authorization = new Authorization(this.authentication, managementToken)
     
     //
     this.webSocket.accept()
@@ -74,17 +83,17 @@ export default class WebSocketSession {
         }
 
         // Check the user token
-        if (this.userToken !== token && this.authenticationService.isAuthenticated) {
-          this.authenticationService = new AuthenticationService(this.managementToken)
+        if (this.userToken !== token && this.authentication.isAuthenticated) {
+          this.authentication = new Authentication(this.managementToken)
         }
 
         // Authentication
-        if (!this.authenticationService.isAuthenticated) {
+        if (!this.authentication.isAuthenticated) {
           this.userToken = token
-          await this.authenticationService.authenticate(token)
+          await this.authentication.authenticate(token)
         }
         
-        const user = this.authenticationService.user
+        const user = this.authentication.user
         if (user && user.isValid) {
           this.userId = user.id
         } else {

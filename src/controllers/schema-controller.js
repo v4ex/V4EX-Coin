@@ -1,7 +1,7 @@
 import Controller from './controller.js'
 
-import miningTaskSchema from '../services/schemas-service/mining-task.json'
-import miningTaskWorkSchema from '../services/schemas-service/mining-task-work.json'
+import miningTaskSchema from '../schemas/mining-task.json'
+import miningTaskWorkSchema from '../schemas/mining-task-work.json'
 
 const Schemas = new Map()
 Schemas.set('mining-task', miningTaskSchema)

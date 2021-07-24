@@ -1,6 +1,6 @@
 import _ from '../utilities/index.js'
 
-import AuthenticationService from './authentication-service.js'
+import Authentication from './authentication.js'
 import Auth0Proxy from '../proxies/auth0-proxy.js'
 import { Ownable } from '../models/ownable.js'
 
@@ -18,22 +18,22 @@ import { Ownable } from '../models/ownable.js'
 
 // TODO hasRoles()
 // TODO ACL
-export default class AuthorizationService {
+export default class Authorization {
 
   /**
-   * @type {AuthenticationService}
+   * @type {Authentication}
    */
-  #authenticationService
+  #authentication
   #auth0Proxy
 
   #cachedRoles
   #cachedRolesDate
 
-  // PROVIDE this.#authenticationService
+  // PROVIDE this.#authentication
   // PROVIDE this.#auth0Proxy
   // PROVIDE this.#cache
-  constructor(authenticationService, managementToken) {  
-    this.#authenticationService = authenticationService
+  constructor(authentication, managementToken) {  
+    this.#authentication = authentication
     this.#auth0Proxy = new Auth0Proxy(managementToken)
 
     
@@ -43,7 +43,7 @@ export default class AuthorizationService {
   //
 
   throwIfNotAuthenticated() {
-    if (!this.#authenticationService.isAuthenticated) {
+    if (!this.#authentication.isAuthenticated) {
       throw new Error("Authentication must happen before authorization.")
     }
   }
@@ -59,7 +59,7 @@ export default class AuthorizationService {
       throw new Error("Target is not ownable.")
     }
 
-    return ownable.ownerId === this.#authenticationService.user.id
+    return ownable.ownerId === this.#authentication.user.id
   }
 
   // ENV AUTH0_ROLE_MINER
@@ -111,7 +111,7 @@ export default class AuthorizationService {
   //
 
   get userId() {
-    return this.#authenticationService.user.id
+    return this.#authentication.user.id
   }
 
   // PROVIDE this.#cachedRoles

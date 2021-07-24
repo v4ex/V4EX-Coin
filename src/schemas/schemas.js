@@ -1,6 +1,6 @@
-import * as schemasValidate from './schemas-service/schemas.cjs'
+import * as schemasValidate from './schemas.cjs'
 
-export default class SchemasService {
+export default class Schemas {
 
   // Validate schema
   static validateSchema($id, data) {

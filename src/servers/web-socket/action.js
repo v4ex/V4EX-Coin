@@ -61,7 +61,7 @@ export default class Action {
     this.webSocketServer = webSocketServer
     this.webSocketSession = webSocketSession
     this.resource = resource
-    this.user = webSocketSession.authenticationService.user
+    this.user = webSocketSession.authentication.user
     this.payload = payload
     this.responseMessage = responseMessage
   }
@@ -100,7 +100,7 @@ export default class Action {
     }
 
     try {
-      return this.webSocketSession.authorizationService.isOwnerOf(this.resourceModel)
+      return this.webSocketSession.authorization.isOwnerOf(this.resourceModel)
     } catch (error) {
       return false
     }
@@ -109,7 +109,7 @@ export default class Action {
   // PROVIDE this.isMinerUser
   async isMinerUser() {
     try {
-      return await this.webSocketSession.authorizationService.isMiner()
+      return await this.webSocketSession.authorization.isMiner()
     } catch (error) {
       return false
     }
@@ -118,7 +118,7 @@ export default class Action {
   // PROVIDE this.isBrokerUser
   async isBrokerUser() {
     try {
-      return await this.webSocketSession.authorizationService.isBroker()
+      return await this.webSocketSession.authorization.isBroker()
     } catch (error) {
       return false
     }
@@ -127,7 +127,7 @@ export default class Action {
   // PROVIDE this.isMinterUser
   async isMinterUser() {
     try {
-      return await this.webSocketSession.authorizationService.isMinter()
+      return await this.webSocketSession.authorization.isMinter()
     } catch (error) {
       return false
     }

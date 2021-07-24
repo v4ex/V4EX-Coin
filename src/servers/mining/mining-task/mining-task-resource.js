@@ -1,7 +1,7 @@
 
 import _ from '../../../utilities/index.js'
 
-import SchemasService from '../../../services/schemas-service.js'
+import Schemas from '../../../schemas/schemas.js'
 
 import { MiningTask } from './models/mining-task.js'
 
@@ -335,7 +335,7 @@ export default class MiningTaskResource extends Resource {
       return false
     }
 
-    let valid = await SchemasService.validateSchema('mining-task-work', work)
+    let valid = await Schemas.validateSchema('mining-task-work', work)
     if (valid) {
       const original = {
         work: this.#work,

@@ -1,6 +1,6 @@
 import Controller from './controller.js'
 import _ from '../utilities/index.js'
-import AuthenticationService from '../services/authentication-service.js'
+import Authentication from '../auth/authentication.js'
 
 
 export default class RootController extends Controller {
@@ -20,15 +20,15 @@ export default class RootController extends Controller {
   }
 
   async index(managementToken, request) {
-    const authenticationService = new AuthenticationService(managementToken)
+    const authentication = new Authentication(managementToken)
     const token = _.getAuthorizationBearerFromRequest(request)
 
     if (token) { // Headers has token
-      await authenticationService.authenticate(token)
+      await authentication.authenticate(token)
       
-      if (authenticationService.isAuthenticated) {
+      if (authentication.isAuthenticated) {
         // TODO List of options
-        return new Response(JSON.stringify(authenticationService.user), { status: 200 })
+        return new Response(JSON.stringify(authentication.user), { status: 200 })
       } else {
         return new Response("Unauthorized", { status: 401 })
       }
