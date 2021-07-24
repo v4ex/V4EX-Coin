@@ -744,7 +744,7 @@ export default class MiningTaskResource extends Resource {
 
   // CHANGE this.#timestampCommitted
   async setCommit(timestamp) {
-    this.#timestampCommitted = timestamp
+    this.#timestamps.committedAt = timestamp
 
     return await this.save()
   }

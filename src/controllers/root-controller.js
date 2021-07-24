@@ -5,6 +5,8 @@ import AuthenticationService from '../services/authentication-service.js'
 
 export default class RootController extends Controller {
 
+  // OVERRIDDEN
+  // PROVIDE this.canHandle
   get canHandle() {
     if (this.url.pathname === '/') {
       return true
@@ -12,8 +14,8 @@ export default class RootController extends Controller {
     return false
   }
 
-  // USING env AUTH0_MANAGEMENT_TOKEN
-  handleRequest() {
+  // ENV AUTH0_MANAGEMENT_TOKEN
+  async handleRequest() {
     return this.index(this.env.AUTH0_MANAGEMENT_TOKEN, this.request)
   }
 

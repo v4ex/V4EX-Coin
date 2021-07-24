@@ -8,11 +8,14 @@ export default class Controller {
     return new URL(this.request.url)
   }
 
+  // OVERRIDE
+  // PROVIDE 
   get canHandle() {
     return false
   }
 
-  handleRequest() {
+  // OVERRIDE
+  async handleRequest() {
     return new Response("OK", { status: 200 })
   }
 }

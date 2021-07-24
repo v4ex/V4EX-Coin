@@ -29,7 +29,7 @@ export default class WebSocketController extends Controller {
   }
 
 
-  handleRequest() {
+  async handleRequest() {
     return this[this.prefix](this.request, this.env, this.sub)
   }
 

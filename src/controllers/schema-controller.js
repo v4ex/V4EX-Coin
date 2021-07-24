@@ -9,7 +9,8 @@ Schemas.set('mining-task-work', miningTaskWorkSchema)
 
 export default class SchemaController extends Controller {
   
-  // PROVIDING this.schemaName
+  // OVERRIDDEN
+  // PROVIDE this.schemaName
   get canHandle() {
     const url = new URL(this.request.url)
     const nameParts = url.pathname.split('/')
@@ -23,7 +24,8 @@ export default class SchemaController extends Controller {
     return false
   }
 
-  handleRequest() {
+  // OVERRIDDEN
+  async handleRequest() {
     return this.schema(this.schemaName)
   }
 
