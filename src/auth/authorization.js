@@ -92,6 +92,14 @@ export default class Authorization {
     return false
   }
 
+  // ENV BROKERS_MAP
+  async getBrokerName() {
+    if (await this.isBroker()) {
+      return JSON.parse(process.env.BROKERS_MAP)[this.userId]
+    }
+    return undefined
+  }
+
   // ENV AUTH0_ROLE_MINTER
   async isMinter() {
     this.throwIfNotAuthenticated()
@@ -107,9 +115,18 @@ export default class Authorization {
     return false
   }
 
+  // ENV MINTERS_MAP
+  async getMinterName() {
+    if (await this.isMinter()) {
+      return JSON.parse(process.env.MINTERS_MAP)[this.userId]
+    }
+    return undefined
+  }
+
   // ==========================================================================
   //
 
+  // PROVIDE this.userId
   get userId() {
     return this.#authentication.user.id
   }

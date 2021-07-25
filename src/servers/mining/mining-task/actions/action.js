@@ -190,7 +190,7 @@ export default class Action extends BaseAction {
     return true
   }
 
-  // ENV MINING_BROKERS
+  // ENV BROKERS_MAP
   /**
    * Test if the Brokering Mining Task match the current acting Broker.
    */
@@ -208,7 +208,7 @@ export default class Action extends BaseAction {
     
     // Check work information
     const miningTask = this.resourceModel
-    if (this.user.id !== JSON.parse(process.env.MINING_BROKERS)[miningTask.work.server]) {
+    if (this.user.id !== JSON.parse(process.env.BROKERS_MAP)[miningTask.work.server]) {
       return false
     }
 

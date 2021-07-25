@@ -2,7 +2,7 @@
 
 import RootController from './controllers/root-controller.js'
 import SchemaController from './controllers/schema-controller.js'
-
+import TasksController from './controllers/tasks-controller.js'
 import WebSocketController from './controllers/web-socket-controller.js'
 
 // import Mining from './api/mining.js'
@@ -13,6 +13,7 @@ export {
 }
 
 
+// TODO Configuration pre-check
 // Default Handler class of "modules" format
 export default {
   async fetch(request, env) {
@@ -28,14 +29,16 @@ export default {
 
     // ========================================================================
     // Handle root request
+    // Route: /
     
-    const indexController = new RootController(request, env)
-    if (indexController.canHandle) {
-      return indexController.handleRequest()
+    const rootController = new RootController(request, env)
+    if (rootController.canHandle) {
+      return rootController.handleRequest()
     }
 
     // ========================================================================
     // Handle Schema request
+    // Route: /schema/*
 
     const schemaController = new SchemaController(request, env)
     if (schemaController.canHandle) {
@@ -43,10 +46,17 @@ export default {
     }
 
     // ========================================================================
-    // Durable Object Websocket
+    // Tasks Listing
+    // Route: /tasks
 
-    // ?sub=${sub}
-    // let sub = Url.searchParams.get('sub') ?? 'V4EX'
+    const tasksController = new TasksController(request, env)
+    if (tasksController.canHandle) {
+      return tasksController.handleRequest()
+    }
+
+    // ========================================================================
+    // Durable Object Websocket
+    // Route: /mining
 
     const webSocketController = new WebSocketController(request, env)
     if (webSocketController.canHandle) {

@@ -1,9 +1,7 @@
-import Controller from './controller.js'
-import _ from '../utilities/index.js'
-import Authentication from '../auth/authentication.js'
+import AuthController from './auth-controller.js'
 
 
-export default class RootController extends Controller {
+export default class RootController extends AuthController {
 
   // OVERRIDDEN
   // PROVIDE this.canHandle
@@ -15,26 +13,17 @@ export default class RootController extends Controller {
   }
 
   // ENV AUTH0_MANAGEMENT_TOKEN
+  // OVERRIDDEN
   async handleRequest() {
-    return this.index(this.env.AUTH0_MANAGEMENT_TOKEN, this.request)
-  }
+    const authenticated = await this.authenticate().catch(error => {
+      return new Response("V4EX Coin", { status: 200 })
+    })
 
-  async index(managementToken, request) {
-    const authentication = new Authentication(managementToken)
-    const token = _.getAuthorizationBearerFromRequest(request)
-
-    if (token) { // Headers has token
-      await authentication.authenticate(token)
-      
-      if (authentication.isAuthenticated) {
-        // TODO List of options
-        return new Response(JSON.stringify(authentication.user), { status: 200 })
-      } else {
-        return new Response("Unauthorized", { status: 401 })
-      }
-
-    } else { // Token is not provided
-      return new Response("V4EX Coin", { status: 200 });
+    if (authenticated) {
+      return new Response(JSON.stringify(this.authentication.user), { status: 200 })
+    } else {
+      return new Response("Unauthorized", { status: 401 })
     }
   }
+
 }
