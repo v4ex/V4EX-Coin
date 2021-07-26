@@ -14,6 +14,66 @@ import MiningTaskResource from '../mining-task-resource.js'
 
 export default class Action extends BaseAction {
 
+  // ==========================================================================
+  // 
+
+  constructor(...args) {
+    super(...args)
+
+    this.broadcastPermissions.set('handler', this.broadcastPermissionsHandler.bind(this))
+  }
+
+  // ==========================================================================
+  // Broadcast Permissions Control 
+  // LINK WebSocketSession.broadcast()
+  //
+  // Same logic as ViewAction
+
+  // ENV BROKERS_MAP
+  async broadcastPermissionsHandler(webSocketSession) {
+
+    if (!this.isValidResource) {
+      return false
+    }
+
+    const authorization = webSocketSession.authorization
+    const user = webSocketSession.authentication.user
+
+    if (!user) {
+      return false
+    }
+
+    //
+    const situationA = await authorization.isMiner() && authorization.isOwnerOf(this.resourceModel)
+    if (situationA) {
+      return true
+    }
+
+    //
+    let situationB = false
+    if (await authorization.isBroker()) {
+      if (this.resource.isSubmitted) {
+        if (user.id === JSON.parse(process.env.BROKERS_MAP)[this.resourceModel.work.server]) {
+          situationB = true
+        }
+      }
+    }
+    if (situationB) {
+      return true
+    }
+
+    //
+    const situationC = await authorization.isMinter()
+    if (situationC) {
+      return true
+    }
+
+    return false
+  }
+
+  // ==========================================================================
+  // 
+
   // OVERRIDDEN
   // PROVIDE this.isAllowed
   async isAllowed() {
@@ -26,7 +86,7 @@ export default class Action extends BaseAction {
   }
 
   // ==========================================================================
-  // Templates for do()
+  // Predefined operations for do()
 
   // CHANGE this.resource
   // CHANGE this.responseMessage
@@ -60,6 +120,9 @@ export default class Action extends BaseAction {
           })
       }
     }
+
+    //
+    this.broadcastEnabled = true
   }
 
   // CHANGE this.resource
@@ -100,6 +163,9 @@ export default class Action extends BaseAction {
         }
       }
     }
+
+    //
+    this.broadcastEnabled = true
   }
 
   // CHANGE this.resource
@@ -140,6 +206,9 @@ export default class Action extends BaseAction {
         }
       }
     }
+
+    //
+    this.broadcastEnabled = true
   }
 
   // CHANGE this.resource
@@ -176,6 +245,9 @@ export default class Action extends BaseAction {
           })
       }
     }
+
+    //
+    this.broadcastEnabled = true
   }
 
   // ==========================================================================

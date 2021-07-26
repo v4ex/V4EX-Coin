@@ -5,9 +5,7 @@ import SchemaController from './controllers/schema-controller.js'
 import TasksController from './controllers/tasks-controller.js'
 import WebSocketController from './controllers/web-socket-controller.js'
 
-// import Mining from './api/mining.js'
 import Mining from './servers/mining/mining-server.js'
-
 export {
   Mining
 }

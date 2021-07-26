@@ -1,3 +1,4 @@
+import _ from 'lodash'
 import Authentication from '../../auth/authentication.js'
 import Authorization from '../../auth/authorization.js'
 
@@ -30,6 +31,9 @@ export class ResponseMessage {
 
 export default class WebSocketSession {
 
+  // ==========================================================================
+  // 
+
   // PROVIDE this.authentication
   // PROVIDE this.authorization
   // PROVIDE this.id
@@ -39,6 +43,7 @@ export default class WebSocketSession {
   // PROVIDE this.sessionsManager
   // PROVIDE this.webSocket
   // PROVIDE this.webSocketServer
+  // PROVIDE this.watch
   constructor(webSocketServer, webSocket, request, managementToken) {
     this.webSocketServer = webSocketServer
     this.sessionsManager = webSocketServer.sessionsManager
@@ -49,76 +54,15 @@ export default class WebSocketSession {
     this.managementToken = managementToken
     this.authentication = new Authentication(managementToken)
     this.authorization = new Authorization(this.authentication, managementToken)
+    this.watch = false
     
     //
     this.webSocket.accept()
 
     this.addToSessionsManager()
 
-    // AVAILABLE this.userId If successfully authenticated
-    // CHANGE this.userToken
-    // PROVIDE this.userToken
-    this.webSocket.addEventListener('message', async ({data}) => {
-
-      // Default response message
-      let responseMessage = new ResponseMessage()
-
-      try {
-        // Extract data from incoming message
-        // token: User access token
-        // resource: Target resource key string
-        // action: Action to target resource
-        // payload: Additional payload
-        const { token, resource: resourceName, action, payload } = JSON.parse(data)
-
-        // Check the target resource
-        const resource = this.webSocketServer.getResource(resourceName)
-        if (resource === undefined) {
-          throw new Error(`Unknown resource: ${resourceName}`)
-        }
-
-        // Check the specific action
-        if (!resource.actionsList.has(action)) {
-          throw new Error(`Unknown action(${action}) to resource(${resourceName})`)
-        }
-
-        // Check the user token
-        if (this.userToken !== token && this.authentication.isAuthenticated) {
-          this.authentication = new Authentication(this.managementToken)
-        }
-
-        // Authentication
-        if (!this.authentication.isAuthenticated) {
-          this.userToken = token
-          await this.authentication.authenticate(token)
-        }
-        
-        const user = this.authentication.user
-        if (user && user.isValid) {
-          this.userId = user.id
-        } else {
-          this.userId = undefined
-        }
-        this.refreshSessionState()
-
-        // HOOK this.actionRoutes
-        // CHANGE responseMessage
-        await this.webSocketServer.actionRoutes(this, resource, action, payload, responseMessage)
-
-      } catch (error) {
-        // Error
-        console.error("Error caught processing income message: ", error.message);
-        console.error(error.stack);
-
-        if (responseMessage.status <= 500) {
-          responseMessage.setStatus(500) // "Internal Server Error"
-        }
-
-      } finally { // Finally send the constructed response to client.
-        this.broadcast(responseMessage)
-      }
-
-    })
+    // LINK this.messageHandler
+    this.webSocket.addEventListener('message', this.messageHandler.bind(this))
 
     // 
     // Handle Web Socket 'close' event
@@ -133,19 +77,132 @@ export default class WebSocketSession {
 
   }
 
+  // ==========================================================================
+  // 
+
+  // AVAILABLE this.userId If successfully authenticated
+  // CHANGE this.userToken
+  // CHANGE this.watch
+  // PROVIDE this.userToken
+  async messageHandler({data}) {
+
+    // Default response message
+    const responseMessage = new ResponseMessage()
+    const broadcastMessage = {}
+    const broadcastPermissions = new Map()
+
+    // TODO Separate Resource Action and Non-resource Action (Server Action)
+    try {
+      // Extract data from incoming message
+      // token: User access token
+      // resource: Target resource key string
+      // action: Action to target resource
+      // payload: Additional payload
+      // watch: If accepting broadcast messages
+      const { token, resource: resourceName, action, payload, watch } = JSON.parse(data)
+
+      // Mark watch
+      this.watch = watch
+
+      // Check the target resource
+      const resource = this.webSocketServer.getResource(resourceName)
+      if (resource === undefined) {
+        throw new Error(`Unknown resource: ${resourceName}`)
+      }
+
+      // Check the specific action
+      if (!resource.actionsList.has(action)) {
+        throw new Error(`Unknown action(${action}) to resource(${resourceName})`)
+      }
+
+      // Check the user token
+      if (this.userToken !== token && this.authentication.isAuthenticated) {
+        this.authentication = new Authentication(this.managementToken)
+      }
+
+      // Authentication
+      if (!this.authentication.isAuthenticated) {
+        this.userToken = token
+        await this.authentication.authenticate(token)
+      }
+      
+      const user = this.authentication.user
+      if (user && user.isValid) {
+        this.userId = user.id
+      } else {
+        this.userId = undefined
+      }
+      this.refreshSessionState()
+
+      // HOOK this.actionRoutes
+      // CHANGE responseMessage
+      // CHANGE broadcastMessage
+      // CHANGE broadcastPermissions
+      await this.webSocketServer.actionRoutes(this, resource, action, payload, responseMessage, broadcastMessage, broadcastPermissions)
+
+    } catch (error) {
+      // Error
+      console.error("Error caught processing income message: ", error.message);
+      console.error(error.stack);
+
+      if (responseMessage.status <= 500) {
+        responseMessage.setStatus(500) // "Internal Server Error"
+      }
+
+    } finally { // Finally send the constructed response to client.
+      // Respond the requesting client
+      this.respond(responseMessage)
+      // Broadcast message to watchers
+      this.broadcast(broadcastMessage, broadcastPermissions)
+    }
+
+  }
+
+  // ==========================================================================
+  // 
+
+  respond(message) {
+    this.webSocket.send(JSON.stringify(message))
+  }
+
+  // TODO Permissions Management
   /**
    * Broadcast message.
    * 
-   * @param {object} message 
+   * @param {object} message
+   * @param {Map} permissions
    */
-  broadcast(message) {
-    if (this.userId) {
-      const userSessions = this.sessionsManager.getUserSessions(this.userId)
+  broadcast(message, permissions) {
+    if (_.isEmpty(message)) {
+      return
+    }
 
-      userSessions.forEach(sessionId => {
-        const session = this.sessionsManager.getSession(sessionId)
-        session.webSocket.send(JSON.stringify(message))
-      })
+    if (this.userId) {
+      // Broadcast to all watching users
+      const usersIdIterator = this.sessionsManager.managedSessions.keys()
+      let userIdItem = usersIdIterator.next()
+      while(!userIdItem.done) {
+        const userId = userIdItem.value
+        const userSessions = this.sessionsManager.getUserSessions(userId)
+
+        userSessions.forEach(async (sessionId) => {
+          const session = this.sessionsManager.getSession(sessionId)
+          if (!session.watch) {
+            return
+          }
+          const broadcastPermissionsHandler = permissions.get('handler')
+          if (broadcastPermissionsHandler) {
+            if (await broadcastPermissionsHandler(session)) {
+              session.webSocket.send(JSON.stringify(message))
+            }
+          } else {
+            session.webSocket.send(JSON.stringify(message))
+          }
+        })
+
+        // Move to next
+        userIdItem = usersIdIterator.next()
+      }
     } else {
       this.webSocket.send(JSON.stringify(message))
     }

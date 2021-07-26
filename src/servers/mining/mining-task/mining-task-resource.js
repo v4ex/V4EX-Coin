@@ -59,17 +59,17 @@ export const MiningTaskResourceActionsList = new Map(Object.entries({
 // Ownable < Model
 // Stored in Miner Durable Object
 
-/**
- * @typedef MiningTask
- * @type {object}
- * 
- * @property {MiningTask} model 
- */
 export default class MiningTaskResource extends Resource {
-  // Private
+
+  // ==========================================================================
+  // Private properties
+
   #init
   #storage
   #key
+  //
+  #bind
+  #stubName
   //
   #id
   #sub
@@ -91,17 +91,29 @@ export default class MiningTaskResource extends Resource {
   //
   #work
 
-  // PROVIDE this.#storage
-  // PROVIDE this.#key
-  // PROVIDE this.#id
-  // PROVIDE this.#sub
-  // PROVIDE this.#timestamps
-  // PROVIDE this.#work
+  // ==========================================================================
+  //
+
+  // PROVIDE MiningTaskResource.NAME
+  static get NAME() {
+    return 'MINING_TASK'
+  }
+
+  // ==========================================================================
+  //
+
   // OVERRIDDEN
+  // PROVIDE this.#init
+  // PROVIDE this.#key
+  // PROVIDE this.#storage
+  // PROVIDE this.#stubName
   constructor(init, storage, key) {
     super()
 
     this.#init = init
+    if (init.sub) {
+      this.#stubName = init.sub
+    }
 
     // Durable Object Storage
     this.#storage = storage
@@ -148,20 +160,75 @@ export default class MiningTaskResource extends Resource {
     return new MiningTask(this.attributes)
   }
 
-  // ==========================================================================
-  // Read / Write
-
-  /**
-   * Save data in Durable Object storage.
-   * Possible Network Loss Error?
-   */
+  // OVERRIDDEN
   async save() {
     if (!this.#storage) {
-      throw new Error("No storage.")
+      if (!this.#bind && !this.#stubName) {
+        throw new Error("No storage.")
+      } else {
+        await this.deposit()
+      }
+    } else {
+      await this.#storage.put(this.#key, this.toModel())
+    }
+  }
+
+  // ==========================================================================
+  // External Mode
+  // Use withdraw() instead of construct()
+
+  // PROVIDE this.#bind
+  // PROVIDE this.#stubName
+  async withdraw(bind, stubName) {
+    this.#bind = bind
+    if (!stubName) {
+      if (!this.#init.sub) {
+        throw new Error("No stub name.")
+      }
+      stubName = this.#init.sub
+    }
+    this.#stubName = stubName
+
+    if (!this.#init.sub) {
+      this.#init.sub = stubName
     }
 
-    await this.#storage.put(this.#key, this.toModel())
+    const stubId = bind.idFromName(stubName)
+    const stub = bind.get(stubId)
+
+    const response = await stub.fetch(`/${MiningTaskResource.NAME}`, {
+      method: 'GET'
+    })
+
+    const {
+      sub,
+      id,
+      timestamps,
+      work
+    } = await response.json()
+
+    // Miner information
+    this.#sub = sub ?? this.#init.sub
+    // Generated identity in initialize()
+    this.#id = id
+    // Timestamps and states
+    Object.assign(this.#timestamps, timestamps)
+    // Information for Proceeding
+    this.#work = work // Work details, e.g. (SPoW) Social Proof of Work
   }
+
+  async deposit() {
+    const id = this.#bind.idFromName(this.#stubName)
+    const stub = this.#bind.get(id)
+
+    await stub.fetch(`/${MiningTaskResource.NAME}`, {
+      method: 'PUT',
+      body: JSON.stringify(this.toModel())
+    })
+  }
+
+  // ==========================================================================
+  // Read / Write
 
   // Reset the cloned object saved in Durable Object.
   async reset() {

@@ -83,6 +83,31 @@ class SessionsManager {
 export default class WebSocketServer {
 
   // ==========================================================================
+  // Constructor and Initialize
+
+  // PROVIDE this.state
+  // PROVIDE this.storage
+  // PROVIDE this.env
+  // PROVIDE this.sessionsManager
+  // PROVIDE this.resourcesRegistry
+  constructor(state, env) {
+    // Durable Object
+    this.state = state                // Durable Object state
+    this.storage = this.state.storage // Durable Object Storage
+    this.env = env                    // Durable Object env
+    // Web Socket
+    this.sessionsManager = new SessionsManager()
+
+    // Resources Registry
+    Object.defineProperty(this, 'resourcesRegistry', {
+      value: new Map(),
+      writable: false,
+      enumerable: true,
+      configurable: false
+    })
+  }
+
+  // ==========================================================================
   // Customization
 
   // PROVIDE this.bindingName
@@ -109,37 +134,22 @@ export default class WebSocketServer {
    * @param {string} action
    * @param {*} payload 
    * @param {ResponseMessage} responseMessage
+   * @param {*} broadcastMessage
+   * @param {*} broadcastPermissions
    * @returns {Promise}
    */
-  async actionRoutes(session, resource, action, payload, responseMessage) {
+  async actionRoutes(session, resource, action, payload, responseMessage, broadcastMessage, broadcastPermissions) {
     const resourceActionClass = resource.actionsList.get(action)
-    const resourceAction = new resourceActionClass(this, session, resource, payload, responseMessage)
+    const resourceAction = new resourceActionClass(this, session, resource, action, payload, responseMessage, broadcastMessage, broadcastPermissions)
     await resourceAction.react()
   }
 
   // ==========================================================================
-  // Constructor and Initialize
+  // 
 
-  // PROVIDE this.state
-  // PROVIDE this.storage
-  // PROVIDE this.env
-  // PROVIDE this.sessionsManager
-  // PROVIDE this.resourcesRegistry
-  constructor(state, env) {
-    // Durable Object
-    this.state = state                // Durable Object state
-    this.storage = this.state.storage // Durable Object Storage
-    this.env = env                    // Durable Object env
-    // Web Socket
-    this.sessionsManager = new SessionsManager()
-
-    // Resources Registry
-    Object.defineProperty(this, 'resourcesRegistry', {
-      value: new Map(),
-      writable: false,
-      enumerable: true,
-      configurable: false
-    })
+  // PROVIDE this.method
+  get method() {
+    return this.request.method
   }
 
   // PROVIDE this.url
@@ -159,7 +169,6 @@ export default class WebSocketServer {
   // OVERRIDE
   async initialize() {
   }
-
 
   // ==========================================================================
   // Resources Registry
@@ -185,7 +194,6 @@ export default class WebSocketServer {
     return this[this.resourcesRegistry.get(key)]
   }
 
-
   // ==========================================================================
   // fetch
 
@@ -203,6 +211,31 @@ export default class WebSocketServer {
     }
     await this.initializePromise
 
+    const resourcesIterator = this.resourcesRegistry.keys()
+    let resource = resourcesIterator.next()
+    while (!resource.done) {
+      const key = resource.value
+      if (this.url.pathname === `/${key}`) {
+        switch (this.method) {
+          case 'GET': {
+            const responseValue = await this.storage.get(key)
+            return new Response(JSON.stringify(responseValue), { status: 200 })
+
+            break
+          }
+          case 'PUT': {
+            await this.storage.put(key, await this.request.json())
+            return new Response("OK", { status: 200 })
+
+            break
+          }
+        }
+      }
+    
+      // Move to next
+      resource = resourcesIterator.next()
+    }
+
     switch (this.url.pathname) {
       case this.routePrefix: {
         if (request.headers.get('Upgrade') === 'websocket') {
@@ -215,10 +248,6 @@ export default class WebSocketServer {
           return new Response("WebSocket expected", { status: 400 })
         }
       }
-
-      // case this.routePrefix + '/sessions': {
-      //   return new Response(JSON.stringify(this.sessions), { status: 200 })
-      // }
 
       default:
         return new Response("Not Found", { status: 404 })

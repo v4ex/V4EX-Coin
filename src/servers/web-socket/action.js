@@ -3,6 +3,47 @@ import Resource from './resource.js'
 export default class Action {
 
   // ==========================================================================
+  // 
+
+  // CHANGE broadcastPermissions
+  // PROVIDE this.webSocketServer
+  // PROVIDE this.webSocketSession
+  // PROVIDE this.resource
+  // PROVIDE this.user
+  // PROVIDE this.action
+  // PROVIDE this.payload
+  // PROVIDE this.responseMessage
+  // PROVIDE this.broadcastMessage
+  // PROVIDE this.broadcastEnabled
+  // PROVIDE this.broadcastPermissions
+  // REFERENCE this.responseMessage
+  // REFERENCE this.broadcastMessage
+  // REFERENCE this.broadcastPermissions
+  /**
+   * 
+   * @param {WebSocketServer} webSocketServer 
+   * @param {WebSocketSession} webSocketSession
+   * @param {Resource} resource Target resource
+   * @param {*} action
+   * @param {*} payload Payload in income message
+   * @param {*} responseMessage Outgoing response message
+   * @param {*} broadcastMessage
+   * @param {*} broadcastPermissions
+   */
+   constructor(webSocketServer, webSocketSession, resource, action, payload, responseMessage, broadcastMessage, broadcastPermissions) {
+    this.webSocketServer = webSocketServer
+    this.webSocketSession = webSocketSession
+    this.resource = resource
+    this.user = webSocketSession.authentication.user
+    this.action = action
+    this.payload = payload
+    this.responseMessage = responseMessage
+    this.broadcastMessage = broadcastMessage
+    this.broadcastEnabled = false
+    this.broadcastPermissions = broadcastPermissions
+  }
+
+  // ==========================================================================
   // For Customization
 
   // HOOK
@@ -22,7 +63,7 @@ export default class Action {
   // HOOK
   // OVERRIDE_ADVANCED
   async react() {
-    if (!await this.isAllowed()) {
+    if (! await this.isAllowed()) {
       this.disallow()
       return
     }
@@ -39,31 +80,13 @@ export default class Action {
     if (this.responseMessage.status >= 400 && this.responseMessage.status < 500) {
       this.responseMessage.statusMessage.concat(" Use HELP to get more information.")
     }
-  }
 
-  // ==========================================================================
-  // 
-
-  // PROVIDE this.webSocketServer
-  // PROVIDE this.resource
-  // PROVIDE this.user
-  // PROVIDE this.payload
-  // PROVIDE this.responseMessage
-  /**
-   * 
-   * @param {WebSocketServer} webSocketServer 
-   * @param {WebSocketSession} webSocketSession
-   * @param {Resource} resource Target resource
-   * @param {*} payload Payload in income message
-   * @param {*} responseMessage Outgoing response message
-   */
-  constructor(webSocketServer, webSocketSession, resource, payload, responseMessage) {
-    this.webSocketServer = webSocketServer
-    this.webSocketSession = webSocketSession
-    this.resource = resource
-    this.user = webSocketSession.authentication.user
-    this.payload = payload
-    this.responseMessage = responseMessage
+    // Normal broadcast
+    if (this.responseMessage.status < 400) {
+      if (this.broadcastEnabled) {
+        this.broadcastMessage[this.resource.key] = this.resourceModel
+      }
+    }
   }
 
   // ==========================================================================

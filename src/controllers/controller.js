@@ -29,12 +29,12 @@ export default class Controller {
   // ==========================================================================
   // 
 
-  // PROVIDE this.$method
+  // PROVIDE this.method
   get method() {
     return this.request.method
   }
 
-  // PROVIDE this.$url
+  // PROVIDE this.url
   get url() {
     return new URL(this.request.url)
   }

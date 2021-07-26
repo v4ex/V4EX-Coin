@@ -2,18 +2,13 @@ import WebSocketServer from '../web-socket/web-socket-server.js'
 
 import MiningTaskResource from './mining-task/mining-task-resource.js'
 
-
+// ============================================================================
+// MiningServer
 // Single mining task
 // TODO Provide multi-tasks mining
+
+
 export default class MiningServer extends WebSocketServer {
-
-  // ==========================================================================
-  // Register Sources and their keys
-
-  // PROVIDE MiningServer.MINING_TASK
-  static get MINING_TASK() {
-    return 'MINING_TASK'
-  }
 
   // ==========================================================================
   // 
@@ -24,6 +19,8 @@ export default class MiningServer extends WebSocketServer {
     return 'MINING'
   }
 
+  // ==========================================================================
+  // 
   
   // PROVIDE this.routePrefix
   // Request route prefix e.g. '/example'
@@ -31,12 +28,12 @@ export default class MiningServer extends WebSocketServer {
     return '/mining'
   }
 
-  // AVAILABLE this.getResource(MiningServer.MINING_TASK)
+  // AVAILABLE this.getResource(MiningTaskResource.NAME)
   async initialize() {
     await super.initialize()
 
     // Make available MiningTaskResource and actions available for requesting
-    await this.setResource(MiningServer.MINING_TASK, MiningTaskResource, { sub: this.sub })
+    await this.setResource(MiningTaskResource.NAME, MiningTaskResource, { sub: this.sub })
   }
 
 }
