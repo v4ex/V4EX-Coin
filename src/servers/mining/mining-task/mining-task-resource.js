@@ -161,6 +161,11 @@ export default class MiningTaskResource extends Resource {
   }
 
   // OVERRIDDEN
+  get model() {
+    return new MiningTask(this.attributes)
+  }
+
+  // OVERRIDDEN
   async save() {
     if (!this.#storage) {
       if (!this.#bind && !this.#stubName) {
@@ -324,6 +329,37 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  /**
+   * Situation A: Miner is trying to view his own Mining Task.
+   * Situation B: Broker is trying to view Mining Task that with submitted work managed by the same Broker.
+   * Situation C: Minter is trying to view any Mining Task.
+   * 
+   * @param {UserFacde} userFacade 
+   * @returns 
+   */
+  async canUserView(userFacade) {
+    // Miner is trying to view his own Mining Task.
+    if (await userFacade.isMiner() && userFacade.isOwnerOf(this.model)) {
+      return true
+    }
+
+    // Broker is trying to view this Mining Task that with submitted work managed by the same Broker.
+    if (await userFacade.isBroker()) {
+      if (this.isSubmitted) {
+        if (userFacade.userId === this.brokerUserId) {
+          return true
+        }
+      }
+    }
+
+    // Minter is trying to view this Mining Task.
+    if (await userFacade.isMinter()) {
+      return true
+    }
+
+    return false
+  }
+
   // ==========================================================================
   // Miner Stage Operations
 
@@ -331,6 +367,9 @@ export default class MiningTaskResource extends Resource {
   get isInMinerStage() {
     return !this.isProceeded && !this.isRejected
   }
+
+  // --------------------------------------------------------------------------
+  // INITIALIZE
 
   // PROVIDE this.canInitialize
   get canInitialize() {
@@ -360,6 +399,9 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // REVERT_INITIALIZE
+
   // PROVIDE this.canRevertInitialize
   get canRevertInitialize() {
     return !this.isEdited && this.isInitialized
@@ -387,6 +429,9 @@ export default class MiningTaskResource extends Resource {
 
     return true
   }
+
+  // --------------------------------------------------------------------------
+  // EDIT
 
   // PROVIDE this.canEdit
   get canEdit() {
@@ -423,6 +468,9 @@ export default class MiningTaskResource extends Resource {
     return false
   }
 
+  // --------------------------------------------------------------------------
+  // CLEAR_EDIT
+
   // PROVIDE this.canClearEdit
   get canClearEdit() {
     return !this.isSubmitted && this.isEdited
@@ -453,6 +501,9 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // SUBMIT
+
   // PROVIDE this.canSubmit
   get canSubmit() {
     return !this.isSubmitted && this.isEdited
@@ -479,10 +530,13 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
-    // PROVIDE this.canRevertSubmit
-    get canRevertSubmit() {
-      return !this.isProceeded && this.isSubmitted
-    }
+  // --------------------------------------------------------------------------
+  // REVERT_SUBMIT
+
+  // PROVIDE this.canRevertSubmit
+  get canRevertSubmit() {
+    return !this.isProceeded && this.isSubmitted
+  }
 
   // CHANGE this.#timestamps.submittedAt
   async revertSubmit() {
@@ -832,6 +886,17 @@ export default class MiningTaskResource extends Resource {
   // PROVIDE this.key
   get key() {
     return this.#key
+  }
+
+  // PROVIDE this.brokerName
+  get brokerName() {
+    return this.#work.server
+  }
+
+  // ENV BROKERS_MAP
+  // PROVIDE this.brokerUserId
+  get brokerUserId() {
+    return JSON.parse(process.env.BROKERS_MAP)[this.brokerName]
   }
 
 }

@@ -1,6 +1,7 @@
 import _ from 'lodash'
 import Authentication from '../../auth/authentication.js'
 import Authorization from '../../auth/authorization.js'
+import UserFacade from '../../facades/user-facade.js';
 
 import Status from 'http-status'
 import { getReasonPhrase } from 'http-status-codes';
@@ -34,6 +35,8 @@ export default class WebSocketSession {
   // ==========================================================================
   // 
 
+  #managementToken
+
   // PROVIDE this.authentication
   // PROVIDE this.authorization
   // PROVIDE this.id
@@ -41,6 +44,7 @@ export default class WebSocketSession {
   // PROVIDE this.managementToken
   // PROVIDE this.request
   // PROVIDE this.sessionsManager
+  // PROVIDE this.userFacade
   // PROVIDE this.webSocket
   // PROVIDE this.webSocketServer
   // PROVIDE this.watch
@@ -51,9 +55,10 @@ export default class WebSocketSession {
     this.id = Symbol(this.ipAddress) // Unique even ipAddress is the same.
     this.webSocket = webSocket
     this.request = request
-    this.managementToken = managementToken
+    this.#managementToken = managementToken
     this.authentication = new Authentication(managementToken)
     this.authorization = new Authorization(this.authentication, managementToken)
+    this.userFacade = undefined
     this.watch = false
     
     //
@@ -81,6 +86,8 @@ export default class WebSocketSession {
   // 
 
   // AVAILABLE this.userId If successfully authenticated
+  // ENV DEV
+  // CHANGE this.userFacade
   // CHANGE this.userToken
   // CHANGE this.watch
   // PROVIDE this.userToken
@@ -117,7 +124,7 @@ export default class WebSocketSession {
 
       // Check the user token
       if (this.userToken !== token && this.authentication.isAuthenticated) {
-        this.authentication = new Authentication(this.managementToken)
+        this.authentication = new Authentication(this.#managementToken)
       }
 
       // Authentication
@@ -129,8 +136,10 @@ export default class WebSocketSession {
       const user = this.authentication.user
       if (user && user.isValid) {
         this.userId = user.id
+        this.userFacade = new UserFacade(this.authentication, this.authorization)
       } else {
         this.userId = undefined
+        this.userFacade = undefined
       }
       this.refreshSessionState()
 
@@ -146,14 +155,21 @@ export default class WebSocketSession {
       console.error(error.stack);
 
       if (responseMessage.status <= 500) {
-        responseMessage.setStatus(500) // "Internal Server Error"
+        if (process.env.DEV) {
+          responseMessage.setStatus(500, JSON.stringify({
+            message: error.message,
+            stack: error.stack
+          })) // "Internal Server Error"
+        } else {
+          responseMessage.setStatus(500) // "Internal Server Error"
+        }
       }
 
     } finally { // Finally send the constructed response to client.
       // Respond the requesting client
       this.respond(responseMessage)
       // Broadcast message to watchers
-      this.broadcast(broadcastMessage, broadcastPermissions)
+      this.broadcast(broadcastMessage, broadcastPermissions, resource)
     }
 
   }
@@ -171,8 +187,9 @@ export default class WebSocketSession {
    * 
    * @param {object} message
    * @param {Map} permissions
+   * @param {Resource} resource
    */
-  broadcast(message, permissions) {
+  broadcast(message, permissions, resource) {
     if (_.isEmpty(message)) {
       return
     }

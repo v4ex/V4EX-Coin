@@ -6,19 +6,20 @@ export default class Action {
   // 
 
   // CHANGE broadcastPermissions
+  // PROVIDE this.action
+  // PROVIDE this.broadcastEnabled
+  // PROVIDE this.broadcastMessage
+  // PROVIDE this.broadcastPermissions
+  // PROVIDE this.payload
+  // PROVIDE this.resource
+  // PROVIDE this.responseMessage
+  // PROVIDE this.user
+  // PROVIDE this.userFacade
   // PROVIDE this.webSocketServer
   // PROVIDE this.webSocketSession
-  // PROVIDE this.resource
-  // PROVIDE this.user
-  // PROVIDE this.action
-  // PROVIDE this.payload
-  // PROVIDE this.responseMessage
-  // PROVIDE this.broadcastMessage
-  // PROVIDE this.broadcastEnabled
-  // PROVIDE this.broadcastPermissions
-  // REFERENCE this.responseMessage
-  // REFERENCE this.broadcastMessage
-  // REFERENCE this.broadcastPermissions
+  // PRODUCE this.responseMessage
+  // PRODUCE this.broadcastMessage
+  // PRODUCE this.broadcastPermissions
   /**
    * 
    * @param {WebSocketServer} webSocketServer 
@@ -35,6 +36,7 @@ export default class Action {
     this.webSocketSession = webSocketSession
     this.resource = resource
     this.user = webSocketSession.authentication.user
+    this.userFacade = webSocketSession.userFacade
     this.action = action
     this.payload = payload
     this.responseMessage = responseMessage

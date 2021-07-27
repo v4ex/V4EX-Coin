@@ -62,8 +62,14 @@ export default class Resource {
     return {}
   }
 
+  // TODO Refactor this to be async
   // OVERRIDE
   toModel() {
+    return new ResourceModel(this.attributes)
+  }
+
+  // OVERRIDE
+  get model() {
     return new ResourceModel(this.attributes)
   }
 

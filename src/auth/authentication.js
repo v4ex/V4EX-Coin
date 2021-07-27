@@ -14,15 +14,17 @@ import { User } from '../models/user.js'
 
 
 // ============================================================================
-// 
+// TODO Cache
+// TODO Singleton
+// TODO A way to refresh user info in case of changes.
 
-// TODO A way to refresh user info.
 export default class Authentication {
   #auth0Proxy
   #auth0UserProxy
 
   #isAuthenticated
   #user
+  #userToken
 
   // PROVIDE this.#auth0Proxy
   // PROVIDE this.#auth0UserProxy
@@ -35,7 +37,8 @@ export default class Authentication {
     this.#auth0UserProxy = new Auth0UserProxy()
   }
 
-  // PROVIDE this.#user
+  // AVAILABLE this.#user If successfully authenticated
+  // AVAILABLE this.#userToken If successfully authenticated
   // CHANGE this.#isAuthenticated
   /**
    * TODO Handle errors
@@ -78,16 +81,27 @@ export default class Authentication {
         }
       }
     }
+
+    if (this.#isAuthenticated) {
+      this.#userToken = token
+    }
   }
 
+  // PROVIDE this.isAuthenticated
   get isAuthenticated() {
     return this.#isAuthenticated
   }
 
+  // PROVIDE this.user
   // Get the authenticated user
   // undefined if is not authenticated
   get user() {
     return this.#user
+  }
+
+  // PROVIDE this.userToken
+  get userToken() {
+    return this.#userToken
   }
 
 }

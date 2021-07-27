@@ -211,6 +211,7 @@ export default class WebSocketServer {
     }
     await this.initializePromise
 
+    // TODO Broadcast new resource model after 'PUT'
     const resourcesIterator = this.resourcesRegistry.keys()
     let resource = resourcesIterator.next()
     while (!resource.done) {
