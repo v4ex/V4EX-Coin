@@ -4,6 +4,8 @@ import Action from './action.js'
 // ============================================================================
 // Permissions
 //
+// Who: Broker
+//
 // Situation: Broker is trying to revert confirm the brokering Mining Task of the specific Miner.
 
 
@@ -20,7 +22,7 @@ export default class RevertConfirmAction extends Action {
       return false
     }
 
-    return await this.isMatchedBrokeringMiningTask()
+    return await this.resource.canUserRevertConfirm(this.userFacade)
   }
 
   // CHANGE this.resource

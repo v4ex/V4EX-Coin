@@ -18,7 +18,7 @@ export default class RejectAction extends Action {
       return false
     }
 
-    return await this.isMatchedBrokeringMiningTask()
+    return await this.resource.canUserReject(this.userFacade)
   }
 
   // CHANGE this.resource

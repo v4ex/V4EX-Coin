@@ -21,7 +21,7 @@ export default class InitializeAction extends Action {
       return false
     }
 
-    return await this.isMinerUser() && this.isUserOwningTheResource
+    return await this.resource.canUserInitialize(this.userFacade)
   }
 
   // CHANGE this.resource

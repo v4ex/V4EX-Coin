@@ -18,7 +18,7 @@ export default class ProceedAction extends Action {
       return false
     }
 
-    return await this.isMatchedBrokeringMiningTask()
+    return await this.resource.canUserProceed(this.userFacade)
   }
 
   // CHANGE this.resource

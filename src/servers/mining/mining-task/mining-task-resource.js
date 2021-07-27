@@ -330,14 +330,20 @@ export default class MiningTaskResource extends Resource {
   }
 
   /**
-   * Situation A: Miner is trying to view his own Mining Task.
-   * Situation B: Broker is trying to view Mining Task that with submitted work managed by the same Broker.
-   * Situation C: Minter is trying to view any Mining Task.
+   * Who: [Miner, Broker, Minter]
+   * 
+   * Situation.A: Miner is trying to view his own Mining Task.
+   * Situation.B: Broker is trying to view Mining Task that with submitted work managed by the same Broker.
+   * Situation.C: Minter is trying to view any Mining Task.
    * 
    * @param {UserFacde} userFacade 
-   * @returns 
+   * @returns boolean
    */
   async canUserView(userFacade) {
+    if (!this.canView) {
+      return false
+    }
+    
     // Miner is trying to view his own Mining Task.
     if (await userFacade.isMiner() && userFacade.isOwnerOf(this.model)) {
       return true
@@ -368,12 +374,28 @@ export default class MiningTaskResource extends Resource {
     return !this.isProceeded && !this.isRejected
   }
 
+  async isMinerHandlingOwnResource(userFacade) {
+    return await userFacade.isMiner() && userFacade.isOwnerOf(this.model)
+  }
+
   // --------------------------------------------------------------------------
   // INITIALIZE
 
   // PROVIDE this.canInitialize
   get canInitialize() {
     return !this.isInitialized
+  }
+
+  /**
+   * Who: Miner
+   * 
+   * Situation: Miner is trying to initialize his own Mining Task.
+   * 
+   * @param {UserFacde} userFacade 
+   * @returns boolean
+   */
+  async canUserInitialize(userFacade) {
+    return this.canInitialize && await this.isMinerHandlingOwnResource(userFacade)
   }
 
   // CHANGE this.#id
@@ -407,10 +429,22 @@ export default class MiningTaskResource extends Resource {
     return !this.isEdited && this.isInitialized
   }
 
+  /**
+   * Who: Miner
+   * 
+   * Situation: Miner is trying to revert initialization of his own Mining Task.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+  async canUserRevertInitialize(userFacade) {
+    return this.canRevertInitialize && await this.isMinerHandlingOwnResource(userFacade)
+  }
+
   // CHANGE this.#id
   // CHANGE this.#timestamps.initializedAt
   async revertInitialize() {
-    if (!this.isInitialized || this.isEdited) {
+    if (!this.canRevertInitialize) {
       return false
     }
 
@@ -438,12 +472,23 @@ export default class MiningTaskResource extends Resource {
     return !this.isSubmitted && this.isInitialized
   }
 
-  // CAREFUL: USER_INPUT
+  /**
+   * Who: Miner
+   * 
+   * Situation: Miner is trying to edit his own Mining Task by adding work information.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+  async canUserEdit(userFacade) {
+    return this.canEdit && await this.isMinerHandlingOwnResource(userFacade)
+  }
+
+  // USER_INPUT work
   // CHANGE this.#timestamps.editedAt
   // CHANGE this.#work
   async edit(work) {
-    // Prerequisite check
-    if (!this.isInitialized || this.isSubmitted) {
+    if (!this.canEdit) {
       return false
     }
 
@@ -476,11 +521,22 @@ export default class MiningTaskResource extends Resource {
     return !this.isSubmitted && this.isEdited
   }
 
+  /**
+   * Who: Miner
+   * 
+   * Situation: Miner is trying to clear edit of his own Mining Task.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+  async canUserClearEdit(userFacade) {
+    return this.canClearEdit && await this.isMinerHandlingOwnResource(userFacade)
+  }
+
   // CHANGE this.#timestamps.editedAt
   // CHANGE this.#work
   async clearEdit() {
-    // Prerequisite check
-    if (this.canClearEdit) {
+    if (!this.canClearEdit) {
       return false
     }
 
@@ -507,6 +563,18 @@ export default class MiningTaskResource extends Resource {
   // PROVIDE this.canSubmit
   get canSubmit() {
     return !this.isSubmitted && this.isEdited
+  }
+
+  /**
+   * Who: Miner
+   * 
+   * Situation: Miner is trying to submit his own Mining Task for verification.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserSubmit(userFacade) {
+    return this.canSubmit && await this.isMinerHandlingOwnResource(userFacade)
   }
 
   // CHANGE this.#timestamps.submittedAt
@@ -536,6 +604,18 @@ export default class MiningTaskResource extends Resource {
   // PROVIDE this.canRevertSubmit
   get canRevertSubmit() {
     return !this.isProceeded && this.isSubmitted
+  }
+
+  /**
+   * Who: Miner
+   * 
+   * Situation: Miner is trying to revert submit of his own Mining Task.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserRevertSubmit(userFacade) {
+    return this.canRevertSubmit && await this.isMinerHandlingOwnResource(userFacade)
   }
 
   // CHANGE this.#timestamps.submittedAt
@@ -577,12 +657,35 @@ export default class MiningTaskResource extends Resource {
     return false
   }
 
+  async isBrokerHandlingAssignedResource(userFacade) {
+    if (await userFacade.isBroker()) {
+      if (userFacade.userId === this.brokerUserId) {
+        return true
+      }
+    }
+  }
+
+  // --------------------------------------------------------------------------
+  // REJECT
+
   // PROVIDE this.canReject
   get canReject() {
     if (this.isSubmitted && !this.isConfirmed && !this.isRejected) {
       return true
     }
     return false
+  }
+
+  /**
+   * Who: Broker
+   * 
+   * Situation: Broker is trying to reject the brokering Mining Task of the specific Miner.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserReject(userFacade) {
+    return this.canReject && await this.isBrokerHandlingAssignedResource(userFacade)
   }
 
   // CHANGE this.#timestamps.rejectedAt
@@ -608,12 +711,27 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // PROCEED
+
   // PROVIDE this.canProceed
   get canProceed() {
     if (this.isSubmitted && !this.isConfirmed && !this.isProceeded) {
       return true
     }
     return false
+  }
+
+  /**
+   * Who: Broker
+   * 
+   * Situation: Broker is trying to proceed the brokering Mining Task of the specific Miner.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserProceed(userFacade) {
+    return this.canProceed && await this.isBrokerHandlingAssignedResource(userFacade)
   }
 
   // CHANGE this.#timestamps.proceededAt
@@ -639,6 +757,9 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // RELEASE_MINER
+
   // PROVIDE this.canReleaseMiner
   get canReleaseMiner() {
     if (!this.isConfirmed && this.isSubmitted) {
@@ -647,6 +768,18 @@ export default class MiningTaskResource extends Resource {
       }
     }
     return false
+  }
+
+  /**
+   * Who: Broker
+   * 
+   * Situation: Broker is trying to release the brokering Mining Task of the specific Miner to the Miner.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserReleaseMiner(userFacade) {
+    return this.canReleaseMiner && await this.isBrokerHandlingAssignedResource(userFacade)
   }
 
   // CHANGE this.#timestamps.proceededAt
@@ -676,12 +809,27 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // CONFIRM
+
   // PROVIDE this.canConfirm
   get canConfirm() {
     if (!this.isConfirmed && this.isProceeded) {
       return true
     }
     return false
+  }
+
+  /**
+   * Who: Broker
+   * 
+   * Situation: Broker is trying to confirm the brokering Mining Task of specific Miner.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserConfirm(userFacade) {
+    return this.canConfirm && await this.isBrokerHandlingAssignedResource(userFacade)
   }
 
   // CHANGE this.#timestamps.confirmedAt
@@ -703,12 +851,27 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // REVERT_CONFIRM
+
   // PROVIDE this.canRevertConfirm
   get canRevertConfirm() {
     if (this.isConfirmed && !this.isAdmitted && !this.isDenied) {
       return true
     }
     return false
+  }
+
+  /**
+   * Who: Broker
+   * 
+   * Situation: Broker is trying to revert confirm the brokering Mining Task of the specific Miner.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserRevertConfirm(userFacade) {
+    return this.canRevertConfirm && await this.isBrokerHandlingAssignedResource(userFacade)
   }
 
   // CHANGE this.#timestamps.confirmedAt
@@ -739,9 +902,24 @@ export default class MiningTaskResource extends Resource {
     return this.isConfirmed && !this.isSettled
   }
 
+  // --------------------------------------------------------------------------
+  // DENY
+
   // PROVIDE this.canDeny
   get canDeny() {
     return !this.isDenied && this.isConfirmed
+  }
+
+  /**
+   * Who: Minter
+   * 
+   * Situation: Minter is trying to deny the Mining Task of the specific Miner confirmed by corresponding Broker.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserDeny(userFacade) {
+    return this.canDeny && await userFacade.isMinter()
   }
 
   // CHANGE this.#timestamps.admittedAt
@@ -767,9 +945,24 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // ADMIT
+
   // PROVIDE this.canAdmit
   get canAdmit() {
     return !this.isAdmitted && this.isConfirmed
+  }
+
+  /**
+   * Who: Minter
+   * 
+   * Situation: Minter is trying to admit the Mining Task of the specific Miner confirmed by corresponding Broker.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserAdmit(userFacade) {
+    return this.canAdmit && await userFacade.isMinter()
   }
 
   // CHANGE this.#timestamps.admittedAt
@@ -795,6 +988,9 @@ export default class MiningTaskResource extends Resource {
     return true
   }
 
+  // --------------------------------------------------------------------------
+  // RELEASE_BROKER
+
   // PROVIDE this.canReleaseBroker
   get canReleaseBroker() {
     if (!this.isSettled && this.isConfirmed) {
@@ -803,6 +999,18 @@ export default class MiningTaskResource extends Resource {
       }
     }
     return false
+  }
+
+  /**
+   * Who: Minter
+   * 
+   * Situation: Minter is trying to release the Mining Task of the specific Miner to the corresponding Broker.
+   * 
+   * @param {UserFacade} userFacade 
+   * @returns boolean
+   */
+   async canUserReleaseBroker(userFacade) {
+    return this.canReleaseBroker && await userFacade.isMinter()
   }
 
   // CHANGE this.#timestamps.admittedAt

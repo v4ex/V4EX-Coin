@@ -21,7 +21,7 @@ export default class RevertInitializeAction extends Action {
       return false
     }
 
-    return await this.isMinerUser() && this.isUserOwningTheResource
+    return await this.resource.canUserRevertInitialize(this.userFacade)
   }
 
   // CHANGE this.resource

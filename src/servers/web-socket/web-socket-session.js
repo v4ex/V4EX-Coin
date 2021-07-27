@@ -169,7 +169,7 @@ export default class WebSocketSession {
       // Respond the requesting client
       this.respond(responseMessage)
       // Broadcast message to watchers
-      this.broadcast(broadcastMessage, broadcastPermissions, resource)
+      this.broadcast(broadcastMessage, broadcastPermissions)
     }
 
   }
@@ -187,9 +187,8 @@ export default class WebSocketSession {
    * 
    * @param {object} message
    * @param {Map} permissions
-   * @param {Resource} resource
    */
-  broadcast(message, permissions, resource) {
+  broadcast(message, permissions) {
     if (_.isEmpty(message)) {
       return
     }

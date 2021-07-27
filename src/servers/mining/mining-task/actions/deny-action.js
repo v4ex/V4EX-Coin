@@ -3,6 +3,8 @@ import Action from './action.js'
 // ============================================================================
 // Permissions
 //
+// Who: Minter
+//
 // Situation: Minter is trying to deny the Mining Task of the specific Miner confirmed by corresponding Broker.
 
 
@@ -18,7 +20,7 @@ export default class DenyAction extends Action {
       return false
     }
 
-    return await this.isMinterUser()
+    return await this.resource.canUserDeny(this.userFacade)
   }
 
   // CHANGE this.resource

@@ -3,6 +3,8 @@ import Action from './action.js'
 // ============================================================================
 // Permissions
 //
+// Who: Broker
+//
 // Situation: Broker is trying to release the brokering Mining Task of the specific Miner to the Miner.
 
 
@@ -18,7 +20,7 @@ export default class ReleaseMinerAction extends Action {
       return false
     }
 
-    return await this.isMatchedBrokeringMiningTask()
+    return await this.resource.canUserReleaseMiner(this.userFacade)
   }
 
   // CHANGE this.resource

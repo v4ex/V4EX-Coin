@@ -4,6 +4,8 @@ import Action from './action.js'
 // ============================================================================
 // Permissions
 //
+// Who: Broker
+//
 // Situation: Broker is trying to confirm the brokering Mining Task of specific Miner.
 
 
@@ -20,7 +22,7 @@ export default class ConfirmAction extends Action {
       return false
     }
 
-    return await this.isMatchedBrokeringMiningTask()
+    return await this.resource.canUserConfirm(this.userFacade)
   }
 
   // CHANGE this.resource

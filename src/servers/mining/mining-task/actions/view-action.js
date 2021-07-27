@@ -1,18 +1,26 @@
 import Action from './action.js'
 
 // ============================================================================
+// Permissions
+//
+// Who: [Miner, Broker, Minter]
+//
+// Situation.A: Miner is trying to view his own Mining Task.
+// Situation.B: Broker is trying to view Mining Task that with submitted work managed by the same Broker.
+// Situation.C: Minter is trying to view any Mining Task.
+
+
+// ============================================================================
 // 
 
 export default class ViewAction extends Action {
 
-  // PROVIDE this.isAllowed
   // OVERRIDDEN
+  // PROVIDE this.isAllowed
   async isAllowed() {
     if (! await super.isAllowed()) {
       return false
     }
-
-    // this.webSocketSession.webSocket.send(JSON.stringify(await this.userFacade.isMinter())) // DEBUG
 
     return await this.resource.canUserView(this.userFacade)
   }

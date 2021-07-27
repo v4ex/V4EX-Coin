@@ -20,7 +20,7 @@ export default class SubmitAction extends Action {
       return false
     }
 
-    return await this.isMinerUser() && this.isUserOwningTheResource
+    return await this.resource.canUserSubmit(this.userFacade)
   }
 
   // CHANGE this.resource

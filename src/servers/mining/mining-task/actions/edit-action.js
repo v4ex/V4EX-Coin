@@ -20,7 +20,7 @@ export default class EditAction extends Action {
       return false
     }
 
-    return await this.isMinerUser() && this.isUserOwningTheResource
+    return await this.resource.canUserEdit(this.userFacade)
   }
 
   // CHANGE this.resource

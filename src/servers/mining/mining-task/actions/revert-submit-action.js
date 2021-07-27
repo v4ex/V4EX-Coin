@@ -20,7 +20,7 @@ export default class RevertSubmitAction extends Action {
       return false
     }
 
-    return await this.isMinerUser() && this.isUserOwningTheResource
+    return await this.resource.canUserRevertSubmit(this.userFacade)
   }
 
   // CHANGE this.resource

@@ -32,43 +32,19 @@ export default class Action extends BaseAction {
   // ENV BROKERS_MAP
   async broadcastPermissionsHandler(webSocketSession) {
 
+    // webSocketSession.webSocket.send(JSON.stringify(webSocketSession)) // DEBUG
+
     if (!this.isValidResource) {
       return false
     }
 
-    const authorization = webSocketSession.authorization
-    const user = webSocketSession.authentication.user
+    const userFacade = webSocketSession.userFacade
 
-    if (!user) {
+    if (!userFacade) {
       return false
     }
 
-    //
-    const situationA = await authorization.isMiner() && authorization.isOwnerOf(this.resourceModel)
-    if (situationA) {
-      return true
-    }
-
-    //
-    let situationB = false
-    if (await authorization.isBroker()) {
-      if (this.resource.isSubmitted) {
-        if (user.id === JSON.parse(process.env.BROKERS_MAP)[this.resourceModel.work.server]) {
-          situationB = true
-        }
-      }
-    }
-    if (situationB) {
-      return true
-    }
-
-    //
-    const situationC = await authorization.isMinter()
-    if (situationC) {
-      return true
-    }
-
-    return false
+    return await this.resource.canUserView(userFacade)
   }
 
   // ==========================================================================
@@ -262,6 +238,7 @@ export default class Action extends BaseAction {
     return true
   }
 
+  // DEPRECATED
   // ENV BROKERS_MAP
   /**
    * Test if the Brokering Mining Task match the current acting Broker.
